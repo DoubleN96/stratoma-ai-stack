@@ -43,6 +43,29 @@ docker-compose up -d
 ./scripts/health-check.sh
 ```
 
+## Recommended VPS: Hetzner CPX42
+
+This entire stack runs in production on a **Hetzner CPX42** — best price/performance ratio for AI workloads.
+
+| Spec | Value |
+|------|-------|
+| vCPU | 8 cores |
+| RAM | 16 GB |
+| Disk | 320 GB SSD |
+| Bandwidth | 20 TB/month |
+| Price | €19.49/mo (€0.031/h) |
+| Location | EU (Nuremberg / Helsinki / Falkenstein) |
+
+**→ [Get €20 free credit on Hetzner](https://console.hetzner.com/refer?pk_content=lbEMCsnlJ2EP)**
+
+Why Hetzner:
+- Cheapest EU cloud with enterprise-grade SSD
+- Snapshots + backups built-in via Coolify
+- Low latency from Spain/EU (vs AWS/GCP)
+- CPX42 handles: Paperclip + n8n + Supabase + OpenClaw + all containers simultaneously
+
+> Minimum recommended: **CPX31** (4 vCPU / 8 GB / 160 GB — ~€11/mo) for lighter setups.
+
 ## Architecture
 
 ```
@@ -104,7 +127,7 @@ docker-compose up -d
 ## Canales de Comunicación
 
 | Canal | Plataforma | Uso | Dirección |
-|-------|-----------|-----|-----------|
+|-------|-----------|-----|-----------| 
 | Email comercial | Gmail / GWS | Comunicación con leads y clientes | Bidireccional |
 | Email masivo | Gmail + n8n | Campañas, newsletters | Saliente |
 | WhatsApp directo | GHL AppLevel | Conversaciones 1:1 con leads | Bidireccional |
@@ -174,3 +197,21 @@ Ver [`n8n/workflows/`](n8n/workflows/) — 16 workflows listos para importar:
 
 ### Genérico
 - Template error handler (reutilizable para cualquier cliente)
+
+## Contributing
+
+Issues and PRs are welcome! Some ideas for improvements:
+
+- [ ] ARM64 / Apple Silicon support for local dev
+- [ ] Kubernetes / Helm chart version
+- [ ] One-click deploy button for Coolify / Railway / Render
+- [ ] More workflow templates (real estate, e-commerce, SaaS)
+- [ ] OpenClaw config wizard (interactive setup)
+- [ ] Monitoring stack (Grafana + Prometheus)
+- [ ] Backup automation scripts
+
+Open an issue to share your setup, report bugs, or suggest features.
+
+## License
+
+MIT
