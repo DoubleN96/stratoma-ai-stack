@@ -10,8 +10,8 @@ This directory contains 16 exported n8n workflow JSON files, organized by projec
 
 | File | Workflow Name | Description |
 |------|--------------|-------------|
-| `Tripath-Monitor-Email-Comercial-Telegram-Approval.json` | Tripath — Monitor Email Comercial + Telegram Approval | Polls Gmail (comercial@tripath.es) every minute for unread emails, uses an LLM (Gemini/OpenRouter) to classify as comercial or operativa, saves to Supabase, sends a Telegram notification for human approval, creates a Paperclip task, and marks the email as read. |
-| `Tripath-Monitor-Email-IA-Telegram-Approval.json` | Tripath — Monitor Email + IA + Telegram Approval | Polls Gmail (info@tripath.es), detects developer vs. regular emails, fetches available rooms from the Tripath API, generates an AI reply via OpenRouter (Gemini), saves pending approval to Supabase, and sends a Telegram message with Approve/Reject inline buttons. (Archived — superseded by Comercial version.) |
+| `Tripath-Monitor-Email-Comercial-Telegram-Approval.json` | Tripath — Monitor Email Comercial + Telegram Approval | Polls Gmail (user@yourclient.com) every minute for unread emails, uses an LLM (Gemini/OpenRouter) to classify as comercial or operativa, saves to Supabase, sends a Telegram notification for human approval, creates a Paperclip task, and marks the email as read. |
+| `Tripath-Monitor-Email-IA-Telegram-Approval.json` | Tripath — Monitor Email + IA + Telegram Approval | Polls Gmail (user@yourclient.com), detects developer vs. regular emails, fetches available rooms from the Tripath API, generates an AI reply via OpenRouter (Gemini), saves pending approval to Supabase, and sends a Telegram message with Approve/Reject inline buttons. (Archived — superseded by Comercial version.) |
 | `Tripath-Email-Aprobar-Rechazar-Telegram.json` | Tripath — Email Aprobar Rechazar Telegram | Webhook-based handler for the Approve/Reject buttons sent in Telegram. On approval: retrieves the pending record from Supabase, sends the Gmail reply, labels it, and updates status. On rejection: marks the record as rejected and notifies Telegram. |
 
 ### WhatsApp & Lead Management
@@ -71,13 +71,13 @@ This directory contains 16 exported n8n workflow JSON files, organized by projec
 
 | File | Workflow Name | Description |
 |------|--------------|-------------|
-| `Workflow-de-errores.json` | Workflow de errores | Generic error-handler for all Tripath n8n workflows. On error trigger: sends an email to developer@tripath.es, and simultaneously checks Paperclip for an existing open error task. Creates a new task if none exists, or adds a comment to the existing one (deduplication via workflow name matching). |
+| `Workflow-de-errores.json` | Workflow de errores | Generic error-handler for all Tripath n8n workflows. On error trigger: sends an email to developer@yourclient.com, and simultaneously checks Paperclip for an existing open error task. Creates a new task if none exists, or adds a comment to the existing one (deduplication via workflow name matching). |
 
 ---
 
 ## Notes
 
 - All workflows use credentials stored in the n8n instance (not included in these exports for security).
-- Supabase backend: `https://db.tripath.es` (Tripath) and `https://paperclip.stratomai.com` (Paperclip task manager).
-- Telegram notifications go to chat ID `263475761`.
+- Supabase backend: `https://db.yourclient.com` (Tripath) and `https://paperclip.yourdomain.com` (Paperclip task manager).
+- Telegram notifications go to chat ID `YOUR_TELEGRAM_CHAT_ID`.
 - AI models used: Google Gemini Flash, OpenRouter (fallback).
