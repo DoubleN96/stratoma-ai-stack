@@ -1,0 +1,6 @@
+.env
+*.env.local
+projects/*/secrets.env
+node_modules/
+*.log
+.DS_Store
