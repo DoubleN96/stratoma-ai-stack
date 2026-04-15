@@ -1,4 +1,5 @@
 #!/bin/bash
+# Bootstrap a new Paperclip company with the default agent roster + skill catalog.
 # Usage: ./scripts/create-company.sh "Company Name" "project-slug"
 
 set -e
@@ -8,63 +9,64 @@ COMPANY_NAME="${1:-My Company}"
 PROJECT_SLUG="${2:-company-develop}"
 PAPERCLIP_URL="${PAPERCLIP_URL:-http://localhost:3100}"
 ADMIN_API_KEY="${PAPERCLIP_ADMIN_API_KEY}"
+ROSTER="${ROSTER:-paperclip/agents/roster.yaml}"
+CATALOG="${CATALOG:-paperclip/skills/catalog.yaml}"
 
 if [ -z "$ADMIN_API_KEY" ]; then
-  echo "ERROR: Set PAPERCLIP_ADMIN_API_KEY in .env"
+  echo "ERROR: PAPERCLIP_ADMIN_API_KEY must be set in .env"
   exit 1
 fi
 
-echo "Creating company: $COMPANY_NAME"
+for tool in yq jq curl; do
+  command -v "$tool" &> /dev/null || { echo "ERROR: $tool required"; exit 1; }
+done
+
+echo "━━━ Creating company: $COMPANY_NAME ━━━"
 
 # 1. Create company
 COMPANY=$(curl -sf -X POST "$PAPERCLIP_URL/api/companies" \
   -H "Authorization: Bearer $ADMIN_API_KEY" \
   -H "Content-Type: application/json" \
   -d "{\"name\": \"$COMPANY_NAME\"}")
+COMPANY_ID=$(echo "$COMPANY" | jq -r '.id')
+echo "  Company ID: $COMPANY_ID"
 
-COMPANY_ID=$(echo $COMPANY | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.id)")
-echo "Company ID: $COMPANY_ID"
-
-# 2. Create project directory
+# 2. Project directory with shared MCP config
 mkdir -p "projects/$PROJECT_SLUG"
 cp paperclip/stratoma-default/.mcp.json "projects/$PROJECT_SLUG/.mcp.json"
-echo "Project dir: projects/$PROJECT_SLUG"
+echo "  Project dir: projects/$PROJECT_SLUG"
 
-# 3. Create default agents
-AGENTS=(
-  '{"name":"CEO","role":"ceo","adapterType":"claude_local"}'
-  '{"name":"Engineer","role":"engineer","adapterType":"claude_local"}'
-  '{"name":"Sales Manager","role":"general","adapterType":"claude_local"}'
-  '{"name":"Marketing","role":"general","adapterType":"claude_local"}'
-)
+# 3. Install skills from catalog (github + skills.sh)
+echo ""
+echo "━━━ Installing skills from $CATALOG ━━━"
+./scripts/install-skills.sh "$COMPANY_ID" "$CATALOG"
 
-for agent_data in "${AGENTS[@]}"; do
-  AGENT_NAME=$(echo $agent_data | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.name)")
-  curl -sf -X POST "$PAPERCLIP_URL/api/companies/$COMPANY_ID/agents" \
+# 4. Create agents from roster
+echo ""
+echo "━━━ Creating agents from $ROSTER ━━━"
+agent_count=$(yq '.agents | length' "$ROSTER")
+for i in $(seq 0 $((agent_count - 1))); do
+  name=$(yq ".agents[$i].name" "$ROSTER")
+  role=$(yq ".agents[$i].role" "$ROSTER")
+  adapter=$(yq ".agents[$i].adapter_type" "$ROSTER")
+  skills_json=$(yq -o=json ".agents[$i].skills" "$ROSTER" | jq -c 'map("company/'$COMPANY_ID'/" + .)')
+
+  echo -n "  + $name ($role)... "
+  agent_response=$(curl -sf -X POST "$PAPERCLIP_URL/api/companies/$COMPANY_ID/agents" \
     -H "Authorization: Bearer $ADMIN_API_KEY" \
     -H "Content-Type: application/json" \
-    -d "$agent_data" > /dev/null
-  echo "  Agent created: $AGENT_NAME"
-done
-
-# 4. Install n8n skills
-N8N_SKILLS=(
-  "czlonkowski/n8n-skills/n8n-workflow-patterns"
-  "czlonkowski/n8n-skills/n8n-mcp-tools-expert"
-  "czlonkowski/n8n-skills/n8n-node-configuration"
-  "czlonkowski/n8n-skills/n8n-code-javascript"
-)
-
-for skill_path in "${N8N_SKILLS[@]}"; do
-  skill_name=$(basename $skill_path)
-  curl -sf -X POST "$PAPERCLIP_URL/api/companies/$COMPANY_ID/skills" \
-    -H "Authorization: Bearer $ADMIN_API_KEY" \
-    -H "Content-Type: application/json" \
-    -d "{\"name\": \"$skill_name\", \"source\": \"skills_sh\", \"sourceLocator\": \"https://skills.sh/$skill_path\"}" > /dev/null
-  echo "  Skill installed: $skill_name"
+    -d "$(jq -nc --arg n "$name" --arg r "$role" --arg a "$adapter" --argjson s "$skills_json" \
+      '{name:$n, role:$r, adapterType:$a, adapterConfig:{paperclipSkillSync:{desiredSkills:$s}}}')")
+  agent_id=$(echo "$agent_response" | jq -r '.id // "ERROR"')
+  echo "$agent_id"
 done
 
 echo ""
-echo "Company '$COMPANY_NAME' ready!"
-echo "  ID: $COMPANY_ID"
-echo "  Paperclip: $PAPERCLIP_URL"
+echo "━━━ Done ━━━"
+echo "  Company: $COMPANY_NAME"
+echo "  ID:      $COMPANY_ID"
+echo "  URL:     $PAPERCLIP_URL/companies/$COMPANY_ID"
+echo ""
+echo "Next steps:"
+echo "  - Upload AGENTS.md per agent (credentials block, runbooks)"
+echo "  - Wire channels (Telegram/WhatsApp) via OpenClaw"
