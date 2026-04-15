@@ -1,0 +1,119 @@
+# Default agent roster for a new company.
+# Used by scripts/create-company.sh to seed Paperclip agents.
+# Each agent gets the shared baseline skills (paperclip meta + gws) plus role-specific skills.
+
+agents:
+  - name: "Marcelino · CEO"
+    role: ceo
+    adapter_type: claude_local
+    skills:
+      - paperclip
+      - paperclip-create-agent
+      - para-memory-files
+      - gws-calendar
+      - gws-calendar-agenda
+      - gws-docs
+      - gws-drive
+      - gws-gmail
+      - gws-sheets
+      - launch-strategy
+      - content-strategy
+
+  - name: "Alex · Ingeniería y Automatizaciones"
+    role: engineer
+    adapter_type: claude_local
+    skills:
+      - paperclip
+      - paperclip-create-plugin
+      - para-memory-files
+      - gws-calendar
+      - gws-docs
+      - gws-drive
+      - gws-gmail
+      - gws-sheets
+      - gws-sheets-read
+      - n8n-workflow-patterns
+      - n8n-mcp-tools-expert
+      - n8n-node-configuration
+      - n8n-code-javascript
+      - n8n-expression-syntax
+      - n8n-validation-expert
+      - next-best-practices
+      - supabase-postgres-best-practices
+
+  - name: "Sofia · Marketing y SEO"
+    role: cmo
+    adapter_type: claude_local
+    skills:
+      - paperclip
+      - para-memory-files
+      - gws-docs
+      - gws-drive
+      - gws-gmail
+      - gws-sheets
+      - content-strategy
+      - copywriting
+      - launch-strategy
+      - programmatic-seo
+      - seo-audit
+      - seo-geo
+      - social-content
+
+  - name: "Sales Manager · Pipeline & Cierre"
+    role: general
+    adapter_type: claude_local
+    skills:
+      - paperclip
+      - para-memory-files
+      - gws-calendar
+      - gws-gmail
+      - gws-sheets
+      - copywriting
+
+  - name: "Sales Rep · Atención y Conversión"
+    role: general
+    adapter_type: claude_local
+    skills:
+      - paperclip
+      - para-memory-files
+      - gws-gmail
+      - gws-sheets
+      - copywriting
+
+  - name: "Lead Qualifier · Calificación"
+    role: general
+    adapter_type: claude_local
+    skills:
+      - paperclip
+      - para-memory-files
+      - gws-gmail
+      - gws-sheets
+
+  - name: "Follow-up · Reactivación de Leads"
+    role: general
+    adapter_type: claude_local
+    skills:
+      - paperclip
+      - para-memory-files
+      - gws-gmail
+      - gws-sheets
+
+  - name: "CRM Updater · Datos y GoHighLevel"
+    role: general
+    adapter_type: claude_local
+    skills:
+      - paperclip
+      - para-memory-files
+      - gws-sheets
+      - gws-sheets-read
+
+  - name: "Admin · Administración e Incidencias"
+    role: general
+    adapter_type: claude_local
+    skills:
+      - paperclip
+      - para-memory-files
+      - gws-calendar
+      - gws-docs
+      - gws-gmail
+      - gws-sheets
