@@ -215,3 +215,28 @@ Open an issue to share your setup, report bugs, or suggest features.
 ## License
 
 MIT
+
+## Skills & agents (opinionated defaults)
+
+The stack ships with a reproducible set of Paperclip skills and a default agent roster.
+
+- **`paperclip/skills/catalog.yaml`** — external skills pulled from GitHub + [skills.sh](https://skills.sh). Covers Google Workspace, n8n, marketing/SEO, Next.js, Supabase, Anthropic doc/pdf tooling, and Paperclip meta-skills.
+- **`paperclip/agents/roster.yaml`** — 9 agents (CEO, Engineer, Marketing/SEO, Sales Manager, Sales Rep, Lead Qualifier, Follow-up, CRM Updater, Admin). Each agent is pre-wired to a sensible subset of skills for its role.
+
+### Bootstrapping a new company
+
+```bash
+cp .env.example .env
+# Fill in PAPERCLIP_ADMIN_API_KEY + other vars
+./scripts/setup.sh                               # docker-compose up
+./scripts/create-company.sh "Client Name" "client-slug"
+# Creates company → installs skills from catalog.yaml → seeds 9 agents from roster.yaml
+```
+
+Requires `yq`, `jq`, `curl` on the host.
+
+### Customising
+
+- Add new skills: append to `paperclip/skills/catalog.yaml` and re-run `./scripts/install-skills.sh <company_id>`.
+- Add/remove agents: edit `paperclip/agents/roster.yaml` and re-run the relevant section of `create-company.sh`.
+- Per-company AGENTS.md instructions (credential blocks, runbooks, tone) are uploaded separately via `PUT /api/agents/{id}/instructions-bundle/file`.
