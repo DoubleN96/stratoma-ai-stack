@@ -1,0 +1,134 @@
+# Skills catalog — reproducible external skills used across Paperclip agents.
+# Install via Paperclip API: POST /api/companies/{id}/skills
+# Or use scripts/install-skills.sh after creating a company.
+
+skills:
+  # ─── Paperclip meta-skills (how agents understand Paperclip itself) ───
+  - slug: paperclip
+    source: local_path
+    locator: /app/skills/paperclip
+    required: true
+    description: Core Paperclip skill — how agents operate inside Paperclip.
+  - slug: paperclip-create-agent
+    source: local_path
+    locator: /app/skills/paperclip-create-agent
+    required: true
+  - slug: paperclip-create-plugin
+    source: local_path
+    locator: /app/skills/paperclip-create-plugin
+    required: true
+  - slug: para-memory-files
+    source: local_path
+    locator: /app/skills/para-memory-files
+    required: true
+    description: PARA-method memory file conventions for agents.
+
+  # ─── Google Workspace (via skills.sh CLI wrappers) ───
+  - slug: gws-calendar
+    source: skills_sh
+    locator: https://skills.sh/googleworkspace/cli/gws-calendar
+  - slug: gws-calendar-agenda
+    source: skills_sh
+    locator: https://skills.sh/googleworkspace/cli/gws-calendar-agenda
+  - slug: gws-calendar-insert
+    source: skills_sh
+    locator: https://skills.sh/googleworkspace/cli/gws-calendar-insert
+  - slug: gws-docs
+    source: skills_sh
+    locator: https://skills.sh/googleworkspace/cli/gws-docs
+  - slug: gws-drive
+    source: skills_sh
+    locator: https://skills.sh/googleworkspace/cli/gws-drive
+  - slug: gws-drive-upload
+    source: skills_sh
+    locator: https://skills.sh/googleworkspace/cli/gws-drive-upload
+  - slug: gws-gmail
+    source: skills_sh
+    locator: https://skills.sh/googleworkspace/cli/gws-gmail
+  - slug: gws-gmail-send
+    source: skills_sh
+    locator: https://skills.sh/googleworkspace/cli/gws-gmail-send
+  - slug: gws-people
+    source: skills_sh
+    locator: https://skills.sh/googleworkspace/cli/gws-people
+  - slug: gws-shared
+    source: skills_sh
+    locator: https://skills.sh/googleworkspace/cli/gws-shared
+  - slug: gws-sheets
+    source: skills_sh
+    locator: https://skills.sh/googleworkspace/cli/gws-sheets
+  - slug: gws-sheets-read
+    source: skills_sh
+    locator: https://skills.sh/googleworkspace/cli/gws-sheets-read
+  - slug: gws-workflow-meeting-prep
+    source: skills_sh
+    locator: https://skills.sh/googleworkspace/cli/gws-workflow-meeting-prep
+
+  # ─── n8n (from czlonkowski/n8n-skills) ───
+  - slug: n8n-workflow-patterns
+    source: github
+    locator: https://github.com/czlonkowski/n8n-skills
+  - slug: n8n-mcp-tools-expert
+    source: github
+    locator: https://github.com/czlonkowski/n8n-skills
+  - slug: n8n-node-configuration
+    source: github
+    locator: https://github.com/czlonkowski/n8n-skills
+  - slug: n8n-code-javascript
+    source: github
+    locator: https://github.com/czlonkowski/n8n-skills
+  - slug: n8n-expression-syntax
+    source: github
+    locator: https://github.com/czlonkowski/n8n-skills
+  - slug: n8n-validation-expert
+    source: github
+    locator: https://github.com/czlonkowski/n8n-skills
+
+  # ─── Marketing & SEO (from coreyhaines31/marketingskills) ───
+  - slug: content-strategy
+    source: github
+    locator: https://github.com/coreyhaines31/marketingskills
+    agents: [cmo, marketing]
+  - slug: copywriting
+    source: github
+    locator: https://github.com/coreyhaines31/marketingskills
+    agents: [cmo, sales, marketing]
+  - slug: launch-strategy
+    source: github
+    locator: https://github.com/coreyhaines31/marketingskills
+    agents: [cmo, ceo]
+  - slug: programmatic-seo
+    source: github
+    locator: https://github.com/coreyhaines31/marketingskills
+    agents: [cmo]
+  - slug: seo-audit
+    source: github
+    locator: https://github.com/coreyhaines31/marketingskills
+    agents: [cmo]
+  - slug: social-content
+    source: github
+    locator: https://github.com/coreyhaines31/marketingskills
+    agents: [cmo, marketing]
+
+  # ─── Additional ───
+  - slug: seo-geo
+    source: github
+    locator: https://github.com/resciencelab/opc-skills
+    agents: [cmo]
+  - slug: next-best-practices
+    source: github
+    locator: https://github.com/vercel-labs/next-skills
+    agents: [engineer]
+  - slug: find-skills
+    source: github
+    locator: https://github.com/vercel-labs/skills
+  - slug: docx
+    source: github
+    locator: https://github.com/anthropics/skills
+  - slug: pdf
+    source: github
+    locator: https://github.com/anthropics/skills
+  - slug: supabase-postgres-best-practices
+    source: github
+    locator: https://github.com/supabase/agent-skills
+    agents: [engineer]
