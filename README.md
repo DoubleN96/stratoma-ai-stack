@@ -15,6 +15,17 @@ Complete AI operations infrastructure for agencies. One-command deployment of:
 - **WhatsApp vía GHL AppLevel** — Comunicación bidireccional directa con leads/clientes
 - **WhatsApp Meta API Oficial** — Comunicaciones masivas (campañas, broadcasts)
 
+---
+
+> ## 🤖 The operating layer: Claude Code via Telegram
+>
+> Once the stack is up, this is **how we actually run it day-to-day** — a
+> single Claude Code instance in a tmux session on the VPS, controlled from
+> Telegram by the operator and approved teammates. Knowledge bases, MCP
+> servers, deploys, scrapes, and customer comms all happen from your phone.
+>
+> **→ [docs/CLAUDE-CODE-TELEGRAM-WORKFLOW.md](docs/CLAUDE-CODE-TELEGRAM-WORKFLOW.md)** — full setup, the exact start command, tmux + systemd, pairing flow for teammates, memory layers, MCP catalog, troubleshooting.
+
 ## Quick Start
 
 ### Prerequisites
