@@ -26,6 +26,16 @@ Complete AI operations infrastructure for agencies. One-command deployment of:
 >
 > **→ [docs/CLAUDE-CODE-TELEGRAM-WORKFLOW.md](docs/CLAUDE-CODE-TELEGRAM-WORKFLOW.md)** — full setup, the exact start command, tmux + systemd, pairing flow for teammates, memory layers, MCP catalog, troubleshooting.
 
+> ## 🪆 Going further: multiple Claudes orchestrated by a "mother"
+>
+> Once you have more than one client project, you split Claude across UNIX
+> users (one per project) and let a **mother Claude** read each child's
+> screen, message them via `tmux send-keys`, and aggregate everything into a
+> daily journal at `panel.stratomai.com/diario`. Fathom call transcripts
+> flow into the same panel.
+>
+> **→ [docs/MULTI-CLAUDE-MOTHER-AND-CHILDREN.md](docs/MULTI-CLAUDE-MOTHER-AND-CHILDREN.md)** — the full architecture: per-user isolation, cross-tmux orchestration, Supabase journal schema, on-demand refresh button, Fathom webhook + cron pull, panel cron list, how to add a new project.
+
 ## Quick Start
 
 ### Prerequisites
