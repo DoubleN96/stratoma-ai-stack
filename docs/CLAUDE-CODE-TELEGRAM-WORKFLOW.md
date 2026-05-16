@@ -16,7 +16,7 @@ have been running uninterrupted for 4+ days at a time with no babysitting.
 - **Control it from anywhere via Telegram** — DM the bot, Claude reads,
   thinks, acts on your VPS, and replies.
 - **Allow your teammates to talk to it** with per-user pairing approval, so
-  Dani can ask Claude to deploy something without you handing him SSH.
+  a teammate can ask Claude to deploy something without you handing out SSH.
 - **Persistent knowledge** via Claude's memory system — after every
   conversation, Claude saves what it learned (your projects, credentials
   references, decisions, preferences) and recalls it next time.
@@ -30,7 +30,7 @@ have been running uninterrupted for 4+ days at a time with no babysitting.
 
 | Component | What it does | Where it lives |
 |---|---|---|
-| **VPS** (Hetzner CPX42 or similar) | Hosts everything | `128.140.44.162` |
+| **VPS** (Hetzner CPX42 or similar) | Hosts everything | `<YOUR_VPS_IP>` |
 | **Claude Code CLI** (`claude`) | The agent itself | `/usr/local/bin/claude` |
 | **Telegram bot** | Inbound chat surface | created in @BotFather |
 | **Telegram channel plugin** (`@claude-plugins-official/telegram`) | Bridges Telegram ↔ Claude Code | `~/.claude/plugins/cache/claude-plugins-official/telegram/0.0.6/` |
@@ -64,7 +64,7 @@ claude
 ### 1.2 Create the Telegram bot
 
 1. On Telegram, message **@BotFather**.
-2. `/newbot` → give it a name (e.g. "Stratoma Claude") and a username (must
+2. `/newbot` → give it a name (e.g. "Acme Claude") and a username (must
    end in `bot`, e.g. `stratoma_claude_bot`).
 3. Copy the bot token it returns. Looks like
    `8123456789:AAEXAMPLE-tokenABCDEFGH-1234567`.
@@ -114,7 +114,7 @@ Add yourself first (your numeric Telegram user_id — find it by DMing
 `@userinfobot`):
 
 ```
-/telegram:access allow 263475761
+/telegram:access allow <YOUR_TELEGRAM_USER_ID>
 ```
 
 Now you can DM the bot.
@@ -132,7 +132,7 @@ This is the command we use in production:
 
 ```bash
 tmux new-session -A -s claude-session \
-  -c /home/n8nstratoma/n8n-stratomai \
+  -c /home/<your-user>/<your-project> \
   'claude --dangerously-skip-permissions --channels plugin:telegram@claude-plugins-official; bash'
 ```
 
@@ -140,7 +140,7 @@ Breakdown:
 
 - `tmux new-session -A -s claude-session` — create or attach to a session
   named `claude-session`. The `-A` flag means "attach if it already exists".
-- `-c /home/n8nstratoma/n8n-stratomai` — Claude's working directory (the
+- `-c /home/<your-user>/<your-project>` — Claude's working directory (the
   project repo). All of Claude's relative paths and CLAUDE.md context come
   from here.
 - `claude` — the Claude Code CLI.
@@ -173,7 +173,7 @@ After=network-online.target
 [Service]
 Type=forking
 WorkingDirectory=%h
-ExecStart=/usr/bin/tmux new-session -d -s claude-session -c %h/n8n-stratomai 'claude --dangerously-skip-permissions --channels plugin:telegram@claude-plugins-official; bash'
+ExecStart=/usr/bin/tmux new-session -d -s claude-session -c %h/<your-project> 'claude --dangerously-skip-permissions --channels plugin:telegram@claude-plugins-official; bash'
 ExecStop=/usr/bin/tmux kill-session -t claude-session
 Restart=on-failure
 RestartSec=10
@@ -194,13 +194,13 @@ directory, MCP servers, memory, and CLAUDE.md context:
 
 ```bash
 # main project
-tmux new-session -A -s claude-session    -c ~/n8n-stratomai          'claude --dangerously-skip-permissions --channels plugin:telegram@claude-plugins-official; bash'
+tmux new-session -A -s claude-session    -c ~/<your-project>          'claude --dangerously-skip-permissions --channels plugin:telegram@claude-plugins-official; bash'
 
-# Int Kapital project
-tmux new-session -A -s claude-intkapital -c ~/int-kapital           'claude --dangerously-skip-permissions --channels plugin:telegram@claude-plugins-official; bash'
+# Per-project session (example: investments brand)
+tmux new-session -A -s claude-projectA    -c ~/projectA              'claude --dangerously-skip-permissions --channels plugin:telegram@claude-plugins-official; bash'
 
-# Bali properties project
-tmux new-session -A -s claude-bali       -c /home/bali_admin        'claude --dangerously-skip-permissions --channels plugin:telegram@claude-plugins-official; bash'
+# Per-project session (example: another brand)
+tmux new-session -A -s claude-projectB    -c /home/client_b          'claude --dangerously-skip-permissions --channels plugin:telegram@claude-plugins-official; bash'
 ```
 
 Each one has its own bot or its own allowlist; they don't interfere.
@@ -215,9 +215,9 @@ that work well:
 
 ### 3.1 One-line tasks
 
-> "deploy the latest tristan repo to coolify"
+> "deploy the latest sample-microsite repo to coolify"
 >
-> "create an A record `tristan.stratomai.com → 128.140.44.162` proxied on cloudflare"
+> "create an A record `sample-microsite.example.com → <YOUR_VPS_IP>` proxied on cloudflare"
 >
 > "run the airdna scrape with my pro account, save the screenshots"
 
@@ -231,13 +231,13 @@ that work well:
 
 ### 3.3 Asking Claude to talk to a teammate
 
-> "send Dani a step-by-step on how to buy the domain in Cloudflare and
+> "send teammate a step-by-step on how to buy the domain in Cloudflare and
 > deploy the fisio website to my VPS"
 >
-> "tell Tristan the brief is ready and the URL is https://tristan.stratomai.com"
+> "tell the client the brief is ready and the URL is https://sample-microsite.example.com"
 
 Claude knows who's who in the allowlist (we keep that mapping in memory —
-see §6 below), so it can DM Dani directly via the same Telegram bot.
+see §6 below), so it can DM teammate directly via the same Telegram bot.
 
 ### 3.4 Checking on long-running work
 
@@ -278,7 +278,7 @@ The pairing flow is the safe path. Walk through it once with each person:
 
 **Save who is who.** Right after approving, ask Claude in the terminal:
 
-> "save in memory that user_id 658528151 is Dani — Socio Marketing"
+> "save in memory that user_id <TELEGRAM_USER_ID> is teammate — Socio Marketing"
 
 Claude writes a `reference_telegram_allowlist.md` so future sessions know
 the mapping. Without this, all you see in incoming messages is a numeric ID.
@@ -286,7 +286,7 @@ the mapping. Without this, all you see in incoming messages is a numeric ID.
 ### 4.1 To revoke
 
 ```
-/telegram:access remove 658528151
+/telegram:access remove <TELEGRAM_USER_ID>
 ```
 
 The user can still send messages but the bot will silently drop them.
@@ -315,13 +315,13 @@ conventions, languages preferences, "always use Bun not npm", etc.
 The "operating manual" for one project. Shipped in the repo so any future
 Claude instance (yours or a teammate's) starts up with the same context.
 
-Our `n8n-stratomai/CLAUDE.md` defines:
+Our `<your-project>/CLAUDE.md` defines:
 
 - Agent roles (Sisyphus = orchestrator, UX-Gemini = frontend, etc.)
 - The execution methodologies we use (`/gsd`, `/ralph-loop`)
 - The standard stack (HTML+Tailwind for landings, Coolify for deploys,
   Supabase for DB)
-- The branding overlay snippet every Stratoma site must include
+- The branding overlay snippet every site must include
 - The MCPs available and what each one is for
 - Critical operational tricks (e.g., the "Playwright Hack" for executing
   SQL through the Coolify terminal when MCP can't reach the DB)
@@ -336,14 +336,14 @@ organized by an index in `MEMORY.md`. Four types:
 
 | Type | What goes in | Example |
 |---|---|---|
-| **user** | Who you are, your role, preferences | "I'm Marcelino, founder of Stratoma. I work in Spanish but my code is in English." |
+| **user** | Who you are, your role, preferences | "I'm the operator, founder. I work in Spanish but my code is in English." |
 | **feedback** | Corrections + validations of approach | "Don't mention LOVO Bar in the Rosi La Loca World project — explicitly out of scope. Reason: client request 2026-05-05." |
 | **project** | State, decisions, motivations behind ongoing work | "Boom Boom Ciao is one of 7 brands in Rosi La Loca World. Project deadline 2026-05-30." |
-| **reference** | Pointers to where things live | "Tristan's Airbnb listing ID: 1671786445749256629. Working folder: /home/n8nstratoma/airbnb-arizona/" |
+| **reference** | Pointers to where things live | "the client's Airbnb listing ID: <LISTING_ID>. Working folder: /home/<user>/<project>/" |
 
 **To force-save**, just tell Claude:
 
-> "save in memory that the deploy chain for tristan is github → coolify webhook → traefik → cloudflare DNS"
+> "save in memory that the deploy chain for sample-microsite is github → coolify webhook → traefik → cloudflare DNS"
 
 To recall:
 
@@ -374,10 +374,10 @@ Configure them per-project in `.mcp.json`. Our standard kit:
 | Server | What Claude can do | Use case |
 |---|---|---|
 | `github` | Read/write repos, PRs, issues, code search | "create a new repo and push this site" |
-| `coolify` | Deploy, restart, inspect apps + servers | "redeploy tristan-brief, send me the deployment status" |
+| `coolify` | Deploy, restart, inspect apps + servers | "redeploy sample-microsite-brief, send me the deployment status" |
 | `playwright` | Headless browser automation | "log in to AirDNA, screenshot the Pro dashboard" |
 | `n8n-mcp` + `n8n-native` | Build, run, debug n8n workflows from prompts | "create a workflow that posts new Stripe payments to Slack" |
-| `supabase` (+ tripath variant) | SQL queries, schema inspection, auth users, storage | "show me the last 10 leads with their utm_source" |
+| `supabase` (+ optional secondary variant) | SQL queries, schema inspection, auth users, storage | "show me the last 10 leads with their utm_source" |
 | `google-workspace` | Gmail, Drive, Docs, Sheets, Calendar, Tasks | "search my Gmail for emails from cdmon.com" |
 | `notion` | Read/write pages and databases | "create a Notion page summarizing this brief" |
 | `stitch` | Generate UI screens from natural language | "design a hero section for the new landing" |

@@ -1,15 +1,19 @@
-# 🤖 Multi-Claude — Mother + Children + Daily Journal + Fathom
+# 🤖 Multi-Claude — Mother + Children + Daily Journal + Calls
 
 > One **mother Claude** orchestrates several **child Claudes**, each running
 > as a separate UNIX user (or on a different VPS), all sharing the same
 > Telegram bot. Every day they self-report into a Supabase journal that
-> renders in a public web panel. Fathom calls (transcripts) flow into the
-> same panel via webhook + cron pull.
+> renders in a web panel. Call transcripts (Fathom or similar) flow into
+> the same panel via webhook + cron pull.
 
-This is the operating model we use across Stratoma AI projects. It scales
+This is the operating model we use across the agency's projects. It scales
 from 1 to N projects with no per-project babysitting, and gives you a single
-URL (`panel.stratomai.com`) where you see what each Claude did today and
-which client calls happened.
+URL where you see what each Claude did today and which client calls
+happened.
+
+> ℹ️ Examples below use **Project A**, **Project B**, **Project C** as
+> generic stand-ins for real client brands. Adapt UNIX user names,
+> URLs, location IDs, and email domains to your own setup.
 
 ---
 
@@ -17,10 +21,10 @@ which client calls happened.
 
 Single-Claude works fine until you have multiple clients with different:
 - working directories
-- MCP servers (each project has its own GHL, Notion, Coolify scope)
-- conversation history (don't mix Tripath context with Neverland context)
+- MCP servers (each project has its own CRM, Notion, Coolify scope)
+- conversation history (don't mix Project A context with Project B context)
 - credentials (one client must NOT see another's secrets)
-- humans on Telegram (Sam ↔ Bali ops, Dani ↔ Neverland ops, you ↔ everything)
+- humans on Telegram (one operator per project, you on top of all)
 
 Running one Claude per project gives clean isolation. The mother Claude
 sits on top to coordinate, summarize, and react when something needs
@@ -33,32 +37,31 @@ cross-project attention.
 ```
 ┌────────────────────── 1× Telegram bot ──────────────────────┐
 │                                                              │
-│   Operator (you) + approved teammates (Sam, Dani, etc.)     │
+│   Operator (you) + approved teammates                       │
 │                                                              │
 └──┬──────────────────┬──────────────────┬──────────────────┬──┘
    │                  │                  │                  │
    ▼                  ▼                  ▼                  ▼
 ┌────────┐      ┌────────────┐    ┌───────────┐    ┌────────────────┐
-│ MOTHER │      │ CHILD #1   │    │ CHILD #2  │    │ CHILD #N       │
-│        │      │ bali_admin │    │ intkapital│    │ claudeuser     │
-│ UNIX:  │      │            │    │           │    │ (Tripath VPS)  │
-│ main   │      │ Unreal +   │    │ Neverland │    │ Tripath        │
-│        │      │ Venaso     │    │           │    │                │
+│ MOTHER │      │ CHILD #A   │    │ CHILD #B  │    │ CHILD #C       │
+│        │      │ client_a   │    │ client_b  │    │ client_c       │
+│ UNIX:  │      │            │    │           │    │ (remote VPS)   │
+│ main   │      │ Project A  │    │ Project B │    │ Project C      │
+│        │      │            │    │           │    │                │
 │ tmux:  │      │ tmux:      │    │ tmux:     │    │ tmux:          │
-│ claude-│      │ claude     │    │ intkapital│    │ claude-tripath │
-│ session│      │            │    │           │    │                │
+│ claude │      │ claude     │    │ claude    │    │ claude-c       │
 └───┬────┘      └─────┬──────┘    └─────┬─────┘    └────────┬───────┘
     │                 │                  │                   │
     │   (mother can read & control children via su / SSH)    │
     │                                                        │
-    └──────────────────► Supabase (panel.stratomai.com) ◄────┘
+    └──────────────────► Supabase (panel app) ◄──────────────┘
                               │
                               │  panel_agent_sessions
                               │  panel_daily_reports
                               │  panel_fathom_calls
                               │  panel_poll_triggers
                               ▼
-                    panel.stratomai.com  (Next.js · live read)
+                       panel (Next.js · live read)
                        / · /diario · /calls
 ```
 
@@ -81,14 +84,14 @@ The mother Claude (operator user) holds the sudo password and the SSH key
 to remote VPSes, so she can `su - <child>` to inspect or message a child
 session.
 
-### Example layout (this stack)
+### Example layout (illustrative)
 
 | User | Project focus | tmux session name | Home |
 |---|---|---|---|
-| `n8nstratoma` (UID 1000) | Mother — orchestration, cross-project | `claude-session` | `/home/n8nstratoma` |
-| `bali_admin` (UID 1001) | Unreal Studio Bali + Venaso (Sam ops) | `claude` | `/home/bali_admin` |
-| `intkapital` (UID 1002) | Int Kapital / Neverland (Dani ops) | `intkapital` | `/home/n8nstratoma/int-kapital` |
-| `claudeuser` (remote VPS) | Tripath (real estate ops) | `claude-tripath` | `/home/claudeuser` (on 46.224.16.135) |
+| `mother` (UID 1000) | Orchestration, cross-project | `claude-session` | `/home/mother` |
+| `client_a` (UID 1001) | Project A — investments brand | `claude` | `/home/client_a` |
+| `client_b` (UID 1002) | Project B — overseas RE + sub-brand | `claude` | `/home/client_b` |
+| `client_c` (remote VPS) | Project C — property management | `claude-c` | `/home/client_c` (remote IP) |
 
 ---
 
@@ -97,36 +100,36 @@ session.
 ### Read a child's screen (no interruption)
 
 ```bash
-sudo -u bali_admin tmux capture-pane -t claude -p -S -100
+sudo -u client_a tmux capture-pane -t claude -p -S -100
 ```
 
-For the remote VPS:
+For a remote VPS:
 
 ```bash
-sshpass -p 'ROOT_PWD' ssh root@46.224.16.135 \
-  "tmux capture-pane -t claude-tripath -p -S -100"
+sshpass -p '<REMOTE_ROOT_PWD>' ssh root@<REMOTE_VPS_IP> \
+  "tmux capture-pane -t claude-c -p -S -100"
 ```
 
 ### Send a prompt into a child's input
 
 ```bash
-sudo -u bali_admin tmux send-keys -t claude 'tu prompt aquí' Enter
+sudo -u client_a tmux send-keys -t claude 'your prompt here' Enter
 # Then ALSO send a second Enter — Claude Code treats multi-line input as
 # a paste buffer and only commits on the second Enter:
 sleep 0.5
-sudo -u bali_admin tmux send-keys -t claude Enter
+sudo -u client_a tmux send-keys -t claude Enter
 ```
 
 ### Spawn a fresh child session
 
-The remote Tripath VPS has a helper script `/root/.local/bin/claude-tripath`
+Each project gets a small helper script (e.g. `/root/.local/bin/claude-<project>`)
 that does the "attach if exists, else create" dance:
 
 ```bash
 #!/bin/bash
-SESSION_NAME="claude-tripath"
-WORK_DIR="/home/claudeuser/tripath-develop"
-RUN_USER="claudeuser"
+SESSION_NAME="claude-<project>"
+WORK_DIR="/home/<user>/<project-folder>"
+RUN_USER="<user>"
 
 if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
   exec tmux attach -t "$SESSION_NAME"
@@ -140,16 +143,15 @@ tmux send-keys -t "$SESSION_NAME" \
 exec tmux attach -t "$SESSION_NAME"
 ```
 
-Each project copies and tweaks this script for its own `WORK_DIR` and
-`RUN_USER`. Result: every Claude is **persistent** — survives crashes,
-SSH disconnects, and reboots (with a systemd unit; see
+Result: every Claude is **persistent** — survives crashes, SSH disconnects,
+and reboots (combine with a systemd unit; see
 `CLAUDE-CODE-TELEGRAM-WORKFLOW.md`).
 
 ---
 
 ## Layer 3 — Daily journal (Supabase + Next.js)
 
-Every night at **22:00 Madrid**, the mother runs `daily_journal_poll.py`:
+Every night at **22:00 local time**, the mother runs `daily_journal_poll.py`:
 
 1. Generates a self-summary by scanning her own `.jsonl` session log.
 2. For each child: `tmux send-keys` a prompt that asks the child to:
@@ -158,14 +160,13 @@ Every night at **22:00 Madrid**, the mother runs `daily_journal_poll.py`:
 3. 30 minutes later, a fallback run inserts a `source='system'` placeholder
    for any child that didn't reply.
 
-The panel at `panel.stratomai.com/diario` shows a timeline grouped by
-date and session.
+The `/diario` page on the panel shows a timeline grouped by date and session.
 
 ### Database schema (TL;DR)
 
 ```sql
 create table public.panel_agent_sessions (
-  slug             text unique not null,    -- 'n8nstratoma', 'bali-admin', etc.
+  slug             text unique not null,    -- 'mother', 'client_a', etc.
   display_name     text not null,
   vps_host         text not null,
   unix_user        text not null,
@@ -189,7 +190,7 @@ create table public.panel_daily_reports (
 
 ### On-demand refresh from the panel
 
-The `/diario` page has a **"🔄 Generar reporte ahora"** button:
+The `/diario` page has a **"🔄 Generate report now"** button:
 
 ```
 Browser
@@ -205,42 +206,44 @@ Children sessions  (via tmux send-keys + SSH)
 /diario reflects new rows on next 60s revalidate
 ```
 
-Total clic-to-fresh-data: 30-90 seconds.
+Total click-to-fresh-data: 30-90 seconds.
 
 ---
 
-## Layer 4 — Fathom integration
+## Layer 4 — Calls integration (Fathom example)
 
-Each client brand has its own Fathom workspace (call transcripts). We
+Each client brand has its own call-transcript workspace (e.g. Fathom). We
 ingest in two ways for redundancy:
 
 ### A) Realtime webhook (instant)
 
-`/api/fathom-webhook/[project]` accepts Fathom's POST, verifies HMAC with
-the per-workspace secret, then upserts into `panel_fathom_calls`.
+`/api/fathom-webhook/[project]` accepts the provider's POST, verifies HMAC
+with the per-workspace secret, then upserts into `panel_fathom_calls`.
 
 Per-project routing:
 
 | URL | Workspace | Secret env var |
 |---|---|---|
-| `/api/fathom-webhook/neverland` | invest@neverlandlombok.com | `FATHOM_WEBHOOK_SECRET_NEVERLAND` |
-| `/api/fathom-webhook/unreal-bali` | unrealstudio@gmail.com (shared with Venaso) | `FATHOM_WEBHOOK_SECRET_UNREAL` |
+| `/api/fathom-webhook/project_a` | brand A's Fathom workspace | `FATHOM_WEBHOOK_SECRET_PROJECT_A` |
+| `/api/fathom-webhook/project_b` | brand B's Fathom workspace (shared with sub-brand B1) | `FATHOM_WEBHOOK_SECRET_PROJECT_B` |
 
-When the Unreal workspace posts, the endpoint auto-classifies each call as
-**Venaso** or **Unreal Studio Bali** by:
+When workspace B posts, the endpoint auto-classifies each call as the
+**main brand** or **sub-brand B1** by:
 
-1. Title contains "venaso" → Venaso
-2. Any attendee/host email under `@venasobali.com.au` or `@venaso.com.au` → Venaso
-3. Known Venaso users (Marcelino, Sergio, Andreas, Sam) → Venaso
-4. Otherwise → Unreal Studio Bali
+1. Title contains the sub-brand name → sub-brand
+2. Any attendee/host email under sub-brand's domain → sub-brand
+3. Known sub-brand users (configurable list) → sub-brand
+4. Otherwise → main brand
 
-You configure the URLs once in Fathom's UI (https://fathom.video/api_clients).
+You configure the URLs once in your Fathom UI (or equivalent provider's UI).
 
 ### B) Cron pull (safety net + backfill)
 
-`fathom_pull.py` runs three times a day (03:00, 11:00, 19:00 Madrid) against
-the Fathom API and upserts everything new. This catches webhooks that were
-missed or that arrived before the webhook URL was configured.
+`fathom_pull.py` runs three times a day (e.g. 03:00, 11:00, 19:00 local) against
+the provider's API and upserts everything new. This catches webhooks that were
+missed or that arrived before the URL was configured.
+
+Fathom example:
 
 ```bash
 # Fathom API base
@@ -274,14 +277,14 @@ create table public.panel_fathom_calls (
 );
 ```
 
-`panel.stratomai.com/calls` renders the timeline grouped by project.
+The `/calls` page renders the timeline grouped by project.
 
 ---
 
 ## Layer 5 — Web panel (Next.js + pg)
 
-The panel is a standalone Next.js app (`DoubleN96/panel-stratomai`) that
-reads directly from Postgres via the `pg` package.
+The panel is a standalone Next.js app that reads directly from Postgres
+via the `pg` package.
 
 ### Important: the Coolify Supabase stack has no PostgREST
 
@@ -290,9 +293,9 @@ the upstream PostgREST container is missing from the standard Coolify
 Supabase compose. We bypass it entirely:
 
 ```
-panel-stratomai container
+panel container
    ├─ docker network: coolify (default Coolify net)
-   └─ docker network: wckks4gsg8owkososoo8sosg (Supabase stack net)
+   └─ docker network: <supabase-stack-id> (Supabase stack net)
        │
        └─ resolves "supabase-db" → port 5432 → pg client connects with
           PG_HOST / PG_USER (=postgres) / PG_PASSWORD / PG_DATABASE
@@ -303,42 +306,41 @@ Because Coolify uses `build_pack=dockerfile` and ignores the
 re-attaches the panel container to the Supabase network after every rebuild:
 
 ```bash
-# /home/n8nstratoma/claude-proxy/ensure_panel_network.sh (excerpt)
-PANEL=$(sudo docker ps --format '{{.Names}}' | grep '^xgoocs8wcsw' | head -1)
+# ensure_panel_network.sh (excerpt)
+PANEL=$(sudo docker ps --format '{{.Names}}' | grep '^<panel-container-prefix>' | head -1)
 sudo docker inspect "$PANEL" --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' \
-  | grep -q 'wckks4gsg8owkososoo8sosg' \
-  || { sudo docker network connect wckks4gsg8owkososoo8sosg "$PANEL"; sudo docker restart "$PANEL"; }
+  | grep -q '<supabase-stack-id>' \
+  || { sudo docker network connect <supabase-stack-id> "$PANEL"; sudo docker restart "$PANEL"; }
 ```
 
 ### Routes
 
 | Route | What it shows | Source |
 |---|---|---|
-| `/` | Dashboard — live GHL data per project (contacts, pipeline, calendars, agents) | GHL API |
+| `/` | Dashboard — live CRM data per project (contacts, pipeline, calendars, agents) | CRM API (e.g. GHL) |
 | `/diario` | Cross-session daily journal timeline | Supabase `panel_daily_reports` |
-| `/calls` | Fathom call transcripts grouped by project | Supabase `panel_fathom_calls` |
+| `/calls` | Call transcripts grouped by project | Supabase `panel_fathom_calls` |
 | `/api/refresh-journal` (POST) | Enqueue a manual journal poll | Inserts into `panel_poll_triggers` |
-| `/api/fathom-webhook/[project]` (POST) | Receive Fathom transcripts | HMAC verify, upsert call |
+| `/api/fathom-webhook/[project]` (POST) | Receive call transcripts | HMAC verify, upsert call |
 
 ---
 
 ## Cron schedule
 
-All on the mother's VPS (`128.140.44.162` as user `n8nstratoma`):
+All on the mother's VPS:
 
 | Schedule | Script | Purpose |
 |---|---|---|
 | `* * * * *` | `process_journal_triggers.py` | Pick up panel button presses (≤60s latency) |
 | `* * * * *` | `ensure_panel_network.sh` | Keep panel container attached to Supabase Docker network |
-| `0 20 * * *` | `run_daily_journal.sh` | Nightly automatic poll at **22:00 Madrid** |
-| `0 1,9,17 * * *` | `fathom_pull.py` | Pull Fathom meetings 3×/day (03:00, 11:00, 19:00 Madrid) |
-| (host cron, optional) | `e2e_tests.py`, `health_check.py` | Existing site monitoring |
+| `0 20 * * *` | `run_daily_journal.sh` | Nightly automatic poll (22:00 local) |
+| `0 1,9,17 * * *` | `fathom_pull.py` | Pull Fathom meetings 3×/day (03:00, 11:00, 19:00 local) |
 
 ---
 
 ## Files in this stack
 
-Under `/home/n8nstratoma/claude-proxy/`:
+Under a working dir on the mother (e.g. `/home/mother/claude-proxy/`):
 
 | File | Role |
 |---|---|
@@ -348,17 +350,17 @@ Under `/home/n8nstratoma/claude-proxy/`:
 | `fathom_pull.py` | Pulls recent meetings from Fathom API, upserts into `panel_fathom_calls` |
 | `run_daily_journal.sh` | Cron wrapper that warms sudo + runs the python script |
 
-Under `DoubleN96/panel-stratomai`:
+Under the panel repo:
 
 ```
-panel-stratomai/
+panel/
 ├── app/
 │   ├── page.tsx                              # Dashboard
-│   ├── diario/page.tsx                       # Diario
+│   ├── diario/page.tsx                       # Daily journal
 │   ├── calls/page.tsx                        # Calls
 │   └── api/
 │       ├── refresh-journal/route.ts          # POST manual trigger
-│       └── fathom-webhook/[project]/route.ts # POST Fathom webhook
+│       └── fathom-webhook/[project]/route.ts # POST call webhook
 ├── components/
 │   ├── Nav.tsx                               # Shared menu (Dashboard / Diario / Calls)
 │   ├── RefreshJournalButton.tsx              # Client-side button
@@ -366,7 +368,7 @@ panel-stratomai/
 │   └── Branding.tsx
 ├── lib/
 │   ├── db.ts                                 # pg pool singleton
-│   └── ghl.ts                                # GHL API helpers
+│   └── ghl.ts                                # CRM API helpers
 └── supabase/migrations/                      # Schema versions
 ```
 
@@ -374,21 +376,21 @@ panel-stratomai/
 
 ## How to add a new project to the stack
 
-1. **Create the GHL location's PIT** (or whatever data source the project uses).
+1. **Create the CRM source's API token** (or whatever data source the project uses).
 2. **Add it to the panel:**
-   - `lib/ghl.ts` → push a new `LocationConfig` into `LOCATIONS`
-   - Coolify env var: `GHL_PIT_<PROJECT>`
-   - Supabase: `INSERT INTO panel_projects (slug, name, ghl_location_id, ...)`
+   - Push a new project entry into the CRM `LOCATIONS` array
+   - Coolify env var: `CRM_TOKEN_<PROJECT>`
+   - Supabase: `INSERT INTO panel_projects (slug, name, ...)`
 3. **(Optional) Create a child Claude session:**
    - `sudo useradd -m <user>` on the VPS
    - Install Claude Code as that user; do the OAuth dance once
-   - Create a `claude-<project>` launcher script (copy from claude-tripath)
+   - Create a `claude-<project>` launcher script (copy the template above)
    - `INSERT INTO panel_agent_sessions (slug, display_name, ...)`
-4. **(Optional) Fathom:**
-   - Get the workspace API key + webhook secret from `https://fathom.video/api_clients`
+4. **(Optional) Calls:**
+   - Get the workspace API key + webhook secret from the provider
    - Add `FATHOM_WEBHOOK_SECRET_<PROJECT>` env var
-   - Map the slug in `app/api/fathom-webhook/[project]/route.ts` (`secretEnvForProject`)
-   - Configure the webhook URL in Fathom UI
+   - Map the slug in `app/api/fathom-webhook/[project]/route.ts`
+   - Configure the webhook URL in the provider's UI
    - Add the workspace to `fathom_pull.py` (`WORKSPACES` list)
 
 ---
@@ -396,17 +398,17 @@ panel-stratomai/
 ## Common ops
 
 ### Force a journal poll right now
-- UI: click "🔄 Generar reporte ahora" on `/diario`
-- CLI: `cd /home/n8nstratoma/claude-proxy && .venv/bin/python daily_journal_poll.py`
+- UI: click "🔄 Generate report now" on `/diario`
+- CLI: `cd /home/mother/claude-proxy && .venv/bin/python daily_journal_poll.py`
 
 ### Check what a child is doing
 ```bash
-sudo -u bali_admin tmux capture-pane -t claude -p -S -80
+sudo -u client_a tmux capture-pane -t claude -p -S -80
 ```
 
 ### Re-login a child whose OAuth expired
 ```bash
-sudo -u bali_admin tmux attach -t claude
+sudo -u client_a tmux attach -t claude
 # Inside: /login   (paste OAuth code from browser)
 ```
 
@@ -423,16 +425,16 @@ sudo -u bali_admin tmux attach -t claude
 | One Claude with many MCP servers | Context grows fast, MCP namespace collisions, no per-project memory |
 | One Claude per project but no central panel | No cross-project visibility, no morning standup |
 | Slack/Discord instead of Telegram | Telegram bots are 30s to wire, the plugin already exists, push reliability is excellent |
-| Webhook-only Fathom ingestion | Misses calls when the webhook URL changes / is misconfigured |
-| Pull-only Fathom ingestion | 8-hour staleness; webhooks are instant |
+| Webhook-only call ingestion | Misses calls when the webhook URL changes / is misconfigured |
+| Pull-only call ingestion | 8-hour staleness; webhooks are instant |
 | n8n for orchestration | Adds another moving part. The cron + Python combo is auditable in plain text |
 
 ---
 
 ## Future work
 
-- [ ] Search across Fathom transcripts (Postgres FTS on `summary_md` + `raw_payload->transcript`)
-- [ ] Link Fathom calls to GHL contacts automatically (match by email)
+- [ ] Search across call transcripts (Postgres FTS on `summary_md` + `raw_payload->transcript`)
+- [ ] Link calls to CRM contacts automatically (match by email)
 - [ ] Slack-style mention notifications when a child reports something critical
 - [ ] Replace `tmux send-keys` with a proper IPC channel (Unix sockets on shared `/tmp/`)
 - [ ] Move from `pg` direct to a thin DAL once we add more tables

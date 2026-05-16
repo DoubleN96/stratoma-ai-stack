@@ -31,7 +31,7 @@ Complete AI operations infrastructure for agencies. One-command deployment of:
 > Once you have more than one client project, you split Claude across UNIX
 > users (one per project) and let a **mother Claude** read each child's
 > screen, message them via `tmux send-keys`, and aggregate everything into a
-> daily journal at `panel.stratomai.com/diario`. Fathom call transcripts
+> daily journal on a single web panel. Call transcripts
 > flow into the same panel.
 >
 > **→ [docs/MULTI-CLAUDE-MOTHER-AND-CHILDREN.md](docs/MULTI-CLAUDE-MOTHER-AND-CHILDREN.md)** — the full architecture: per-user isolation, cross-tmux orchestration, Supabase journal schema, on-demand refresh button, Fathom webhook + cron pull, panel cron list, how to add a new project.
@@ -203,21 +203,21 @@ Every agent gets access to these MCPs by default (via `/paperclip/stratoma-defau
 
 Ver [`n8n/workflows/`](n8n/workflows/) — 16 workflows listos para importar:
 
-### Tripath (coliving)
-- Monitor Email Comercial + categorización IA + aprobación Telegram
-- GHL → Paperclip bridge en tiempo real
-- Respuestas IA por WhatsApp (AppLevel vía GHL)
-- Bot correcciones Telegram
-- Extraer llamadas Idealista
-- Reservas + email marketplaces
-- Check-in automático
+### Sample vertical: coliving / property management
+- Monitor commercial email + AI categorization + Telegram approval
+- CRM → AI agent bridge in real time
+- AI replies on WhatsApp (via CRM provider)
+- Telegram correction bot
+- Inbound listings scraping
+- Bookings + marketplace email automation
+- Automatic check-in
 
-### Int Kapital (inmobiliario)
-- Fathom → GHL sync (transcripciones de llamadas)
-- Workflow de errores para el equipo técnico
+### Sample vertical: real estate investments
+- Call transcript provider → CRM sync
+- Error workflow for the technical team
 
-### Genérico
-- Template error handler (reutilizable para cualquier cliente)
+### Generic
+- Template error handler (reusable for any client)
 
 ## Contributing
 
