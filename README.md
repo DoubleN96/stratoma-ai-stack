@@ -25,6 +25,8 @@ Complete AI operations infrastructure for agencies. One-command deployment of:
 > servers, deploys, scrapes, and customer comms all happen from your phone.
 >
 > **→ [docs/CLAUDE-CODE-TELEGRAM-WORKFLOW.md](docs/CLAUDE-CODE-TELEGRAM-WORKFLOW.md)** — full setup, the exact start command, tmux + systemd, pairing flow for teammates, memory layers, MCP catalog, troubleshooting.
+>
+> **🚀 Brand new? Start here → [docs/SETUP-FROM-SCRATCH.md](docs/SETUP-FROM-SCRATCH.md)** — the complete zero-to-running tutorial: buy a Hetzner server, SSH in, install Claude Code, log in, wire the official Telegram plugin + a BotFather bot, control the box from your phone, then add MCP tools + skills and the Cloudflare/API tokens that make the agent your orchestration brain.
 
 > ## 🪆 Going further: multiple Claudes orchestrated by a "mother"
 >
