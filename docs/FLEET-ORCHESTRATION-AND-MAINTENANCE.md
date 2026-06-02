@@ -129,7 +129,57 @@ inside the mother itself.
 
 ---
 
-## 5. Gotchas learned in production
+## 5. The orchestrator user account as an action layer
+
+Because it is a real Telegram *user* (not a bot), the orchestrator account can do
+things the Bot API forbids — which is what lets the fleet spin up a new project's
+Telegram presence end to end, autonomously:
+
+- **Create a bot** by scripting a conversation with `@BotFather`
+  (`/newbot` → name → username → capture the returned token). The fleet can
+  provision a brand-new project bot with no human in BotFather.
+- **Create a broadcast channel or group**, set its title, and **post** to it
+  (e.g. publish a project's output feed) via the same account.
+- **Resolve a phone number to a user-id**, invite a specific person, or **DM a
+  user directly** (onboarding message, a login link). User→user is allowed; a bot
+  cannot initiate a chat with a stranger.
+- **Poll each child bot for replies** — the round-trip test in §3 Layer 2.
+
+All of this runs through one Telethon string-session, stored 0600 outside git.
+Treat that credential as high-value: it can act as the human.
+
+---
+
+## 6. Onboarding a new project session
+
+To add a new isolated session + bot to the fleet (same host, separate `$HOME`):
+
+1. **Bot** — create it via the orchestrator + BotFather (§5).
+2. **Plugin** — copy a working session's `.claude/plugins` tree into the new
+   `$HOME`, rewriting the old home path → the new one in *every* plugin file
+   (install records embed absolute paths).
+3. **Channel config** — `~/.claude/channels/telegram/.env` = the new bot token;
+   `access.json` = `dmPolicy: allowlist` + the operator and orchestrator user-ids.
+4. **Enable the plugin (critical, easy to miss)** — the session's `settings.json`
+   MUST contain `"enabledPlugins": { "telegram@claude-plugins-official": true }`.
+   Without it the session prints *"Listening for channel messages"* but never
+   spawns the bridge subprocess, so the bot stays silent. Pin the model here too
+   (`"model": "<model-id>"`).
+5. **Auth = one shared subscription, no rotation war** — instead of copying the
+   mother's rotating OAuth credentials (the cause of the §3 `401` problem), mint a
+   long-lived token once (`claude setup-token`) and write it into the session's
+   `.credentials.json` as the `accessToken` with a far-future `expiresAt`. Every
+   session uses the same subscription, but nothing refreshes/rotates, so no
+   session can invalidate another. This also gives full *subscription* mode — the
+   Telegram bridge only spawns under a real login, not a bare API-key env var.
+6. **Launch** in tmux with `bun` on PATH; accept the trust + bypass-permissions
+   prompts once (or pre-seed them in `.claude.json`).
+7. **Verify** the bridge process exists *and* the bot returns a real reply, then
+   add the bot to the §3 health-check lists.
+
+---
+
+## 7. Gotchas learned in production
 
 - **`bun` not on PATH** → a plugin launched via `bun run` (e.g. the Telegram
   plugin) silently fails to connect. Symptom: the session receives nothing / has
