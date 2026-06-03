@@ -1,5 +1,26 @@
 # Stratoma AI Stack
 
+> ## 👋 Never set up a server or an AI agent before? Start here.
+>
+> **Full beginner tutorial (zero experience needed) → [docs/SETUP-FROM-SCRATCH.md](docs/SETUP-FROM-SCRATCH.md)**
+> Every command, copy-paste, from *buying a server* to *texting your own AI agent that runs it for you*.
+>
+> **The 10 steps at a glance:**
+> 1. Buy a server (Hetzner) + get root access
+> 2. Connect to it over SSH
+> 3. Install Claude Code (Node + one npm command)
+> 4. Log in to your account
+> 5. Run it inside `tmux` (survives disconnects)
+> 6. Install the official Telegram plugin
+> 7. Create your Telegram bot with BotFather
+> 8. Control the server from your phone ✅
+> 9. Add MCP tools + skills (the agent's hands & playbooks)
+> 10. Add Cloudflare DNS + the API tokens that make the agent your "brain"
+>
+> Already comfortable with Linux/Docker? Skip to **[Quick Start](#quick-start)** below.
+
+---
+
 Complete AI operations infrastructure for agencies. One-command deployment of:
 
 - **Paperclip** — AI agent platform (agents work autonomously on tasks)
