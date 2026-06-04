@@ -51,6 +51,53 @@ await client.send_message("ProjectABot", "ping")   # a USER messaging a bot — 
 - For `dmPolicy: "pairing"` channels, the first DM triggers a pairing code; the
   operator approves it once (`/telegram:access pair <code>`).
 
+### 2a. Obtaining `api_id` / `api_hash` and producing the string session
+
+The Telethon client above needs three secrets: `api_id`, `api_hash` (identify the
+*application*), and a **string session** (identifies the logged-in *account*).
+One-time setup:
+
+1. **Create the Telegram application** at <https://my.telegram.org> →
+   *API development tools* (full reference:
+   <https://core.telegram.org/api/obtaining_api_id>):
+   - Log in with the **phone number of the user account** that will be the
+     orchestrator (a real account, not a bot).
+   - Fill *App title* and *Short name* (anything, e.g. `fleet-orchestrator`).
+     Platform: *Other*. Leave URL blank.
+   - Submit → you get **`api_id`** (a number) and **`api_hash`** (a 32-char hex
+     string). One app per account is enough; reuse it everywhere.
+2. **Generate the string session** once, interactively, then store it (never the
+   raw `api_hash`/OTP) for unattended use:
+
+   ```python
+   # login_once.py  — run interactively ONE time
+   from telethon.sync import TelegramClient
+   from telethon.sessions import StringSession
+   api_id, api_hash = 123456, "your32charhexhash"
+   with TelegramClient(StringSession(), api_id, api_hash) as c:
+       # prompts for phone, the OTP Telegram sends, and 2FA password if enabled
+       print(c.session.save())   # ← copy this long string
+   ```
+
+   Run it, enter the phone + OTP (+ 2FA if set). It prints the portable session
+   string.
+3. **Store secrets `0600` outside any repo** (e.g. `~/.config/tg-userbot/.env`):
+
+   ```bash
+   TG_API_ID=123456
+   TG_API_HASH=your32charhexhash
+   TG_SESSION=1Bv...long-string-session...
+   ```
+
+   The unattended monitor then loads these and never needs an OTP again:
+   `TelegramClient(StringSession(TG_SESSION), TG_API_ID, TG_API_HASH)`.
+
+> Gotchas: the OTP arrives **inside Telegram** (Saved Messages / the login
+> prompt), not by SMS, when you're already logged in elsewhere. If the account
+> has 2FA, Telethon also asks for that password. A string session is bearer
+> access to the whole account — treat it like a root credential; rotate by
+> running `client.log_out()` and regenerating.
+
 > Security: children correctly treat an unknown sender that asks them to
 > "identify yourself" as a possible prompt injection and refuse. To make a child
 > *respond* to the orchestrator, declare the orchestrator's user-id as a trusted
