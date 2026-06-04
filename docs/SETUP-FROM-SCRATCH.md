@@ -24,7 +24,7 @@ Roughly 20–30 minutes from nothing to "I texted my server and it replied."
 
 ## 1. Buy the server (Hetzner)
 
-1. Create an account at <https://www.hetzner.com/cloud>.
+1. Create an account at **<https://console.hetzner.com/refer?pk_content=lbEMCsnlJ2EP>** (this referral link gives you **€20 free credit** to get started).
 2. **New Project → Add Server.**
    - Location: closest to you.
    - Image: **Ubuntu 24.04**.
