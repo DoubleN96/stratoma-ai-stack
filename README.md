@@ -38,6 +38,19 @@ Complete AI operations infrastructure for agencies. One-command deployment of:
 
 ---
 
+## 🎮 Showcase — built on this exact stack
+
+**[Pokémon Madrid](https://pokemon-madrid.stratomai.com)** is a full Pokémon-style game set in
+Madrid, **built almost entirely by AI from a prompt** (Claude Code · Opus + Gemini for the art),
+and deployed on this stack: **Hetzner + Coolify + self-hosted Supabase** (account login & cloud
+saves). The whole thing — code, art, audio, deploys, testing — was directed from **Telegram**,
+with a group of friends sending photos/audio as context. It's the kind of thing you can ship once
+the stack is up.
+
+**→ [Get €20 free credit on Hetzner](https://console.hetzner.com/refer?pk_content=lbEMCsnlJ2EP)** and build your own.
+
+---
+
 > ## 🤖 The operating layer: Claude Code via Telegram
 >
 > Once the stack is up, this is **how we actually run it day-to-day** — a
