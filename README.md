@@ -47,7 +47,7 @@ saves). The whole thing — code, art, audio, deploys, testing — was directed 
 with a group of friends sending photos/audio as context. It's the kind of thing you can ship once
 the stack is up.
 
-**→ [Get €20 free credit on Hetzner](https://console.hetzner.com/refer?pk_content=lbEMCsnlJ2EP)** and build your own.
+**→ [Get €20 free credit on Hetzner](https://hetzner.cloud/?ref=lbEMCsnlJ2EP)** and build your own.
 
 ---
 
@@ -115,7 +115,7 @@ This entire stack runs in production on a **Hetzner CPX42** — best price/perfo
 | Price | €19.49/mo (€0.031/h) |
 | Location | EU (Nuremberg / Helsinki / Falkenstein) |
 
-**→ [Get €20 free credit on Hetzner](https://console.hetzner.com/refer?pk_content=lbEMCsnlJ2EP)**
+**→ [Get €20 free credit on Hetzner](https://hetzner.cloud/?ref=lbEMCsnlJ2EP)**
 
 Why Hetzner:
 - Cheapest EU cloud with enterprise-grade SSD
