@@ -74,6 +74,40 @@ the stack is up.
 >
 > **→ [docs/FLEET-ORCHESTRATION-AND-MAINTENANCE.md](docs/FLEET-ORCHESTRATION-AND-MAINTENANCE.md)** — keeping the fleet alive and self-updating: the orchestrator user-account pattern (bot↔bot is impossible), allowlist hot-reload + pairing, and a 3-layer cron loop (hourly liveness/revive, 8-hourly end-to-end round-trip, weekly resume-restart for auto-updates). Plus production gotchas (bun PATH, tmux send-keys, pm2 venv).
 
+---
+
+## 📊 Measure what the sites do — Tracking & Analytics
+
+> Every client site gets the same measurement layer, installed the same way: Cloudflare DNS →
+> **one** GTM container in the code → GA4, Search Console and Meta Pixel/CAPI configured inside
+> GTM, never hardcoded. Includes a permissions table (who owns the container, the tokens, the
+> repos) so access can be revoked for one person without rotating everything.
+>
+> **→ [docs/TRACKING-AND-ANALYTICS.md](docs/TRACKING-AND-ANALYTICS.md)** — the full playbook,
+> including the Cloudflare grey-cloud gotcha that breaks Let's Encrypt, GA4 event naming,
+> Search Console domain verification by DNS, and pixel/CAPI deduplication.
+>
+> Installable, not just documented:
+>
+> ```bash
+> # 1. put the container in a web repo (Next.js App Router, Nuxt, or plain HTML)
+> ./scripts/setup-tracking.sh --repo ../my-web --gtm-id GTM-XXXXXXX
+>
+> # 2. configure GA4 + Meta Pixel inside the container, by API — idempotent
+> export GTM_SA_KEY=/secure/path/service-account.json
+> python3 scripts/gtm_provision.py --account-id 1234567 --container-id 7654321 \
+>     --ga4-id G-XXXXXXXXXX --meta-pixel-id 000000000000 --publish
+> ```
+
+## 📚 Knowledge base for clients
+
+> Self-hosted Outline as the documentation layer: **one** instance on your domain, each client a
+> private collection + group, and a REST API your agents read and write — so people ask the bot
+> instead of browsing a wiki nobody opens.
+>
+> **→ [docs/KNOWLEDGE-BASE.md](docs/KNOWLEDGE-BASE.md)** — deploy, per-client onboarding with the
+> isolation check, the API patterns for the AI layer, token scoping, and backups.
+
 ## Quick Start
 
 ### Prerequisites
