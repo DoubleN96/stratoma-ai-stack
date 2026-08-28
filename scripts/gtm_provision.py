@@ -17,6 +17,8 @@ import sys
 
 SCOPES = [
     "https://www.googleapis.com/auth/tagmanager.edit.containers",
+    # creating a version is a separate scope from editing the workspace
+    "https://www.googleapis.com/auth/tagmanager.edit.containerversions",
     "https://www.googleapis.com/auth/tagmanager.publish",
 ]
 
@@ -29,8 +31,9 @@ def ga4_tag(measurement_id):
         "name": "GA4 - Configuration",
         "type": "gaawc",
         "parameter": [
-            {"key": "measurementIdOverride", "type": "template", "value": measurement_id},
-            {"key": "sendPageView", "type": "boolean", "value": "true"},
+            # "tagId" is what the current API wants; the old "measurementIdOverride"
+            # is rejected with "vendorTemplate.parameter.tagId: The value must not be empty."
+            {"key": "tagId", "type": "template", "value": measurement_id},
         ],
         "firingTriggerId": [ALL_PAGES_TRIGGER],
     }
@@ -132,7 +135,7 @@ def self_check():
     """Runnable check: the payloads must carry the ids and fire on all pages."""
     ga4 = ga4_tag("G-TESTID1234")
     assert ga4["type"] == "gaawc"
-    assert any(p["value"] == "G-TESTID1234" for p in ga4["parameter"])
+    assert any(p["key"] == "tagId" and p["value"] == "G-TESTID1234" for p in ga4["parameter"])
     assert ga4["firingTriggerId"] == [ALL_PAGES_TRIGGER]
 
     pixel = meta_pixel_tag("111122223333")
