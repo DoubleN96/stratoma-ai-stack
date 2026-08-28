@@ -1,0 +1,14 @@
+{
+  "name": "whatsapp-communities",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Provision WhatsApp Communities as announcement-only funnel units, via Baileys",
+  "scripts": {
+    "create": "node create-community.mjs"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^7.0.0-rc14",
+    "pino": "^9.5.0"
+  }
+}

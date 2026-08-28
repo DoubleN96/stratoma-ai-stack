@@ -99,6 +99,23 @@ the stack is up.
 >     --ga4-id G-XXXXXXXXXX --meta-pixel-id 000000000000 --publish
 > ```
 
+## 💬 WhatsApp communities as funnel units
+
+> One command creates a WhatsApp Community set up for acquisition: announcements
+> group only (members never see each other's numbers), entry without approval,
+> admins promoted, welcome posted and pinned, "General" removed.
+>
+> **→ [whatsapp/README.md](whatsapp/README.md)** — includes the comparison that
+> settles the usual argument (Evolution API *is* Baileys wrapped in HTTP — that is
+> why communities return 404 there), the rule that breaks sessions if you ignore it
+> (never two Baileys sockets on one account), and a plain statement of ban risk.
+>
+> ```bash
+> cd whatsapp && npm install
+> cp community.example.json community.json   # edit it
+> node create-community.mjs community.json photo.jpg
+> ```
+
 ## 📚 Knowledge base for clients
 
 > Self-hosted Outline as the documentation layer: **one** instance on your domain, each client a

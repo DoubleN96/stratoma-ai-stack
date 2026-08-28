@@ -1,0 +1,16 @@
+{
+  "subject": "My Community Name",
+  "description": "One or two lines describing what members get here.",
+  "descriptionFile": null,
+  "photo": "./photo.jpg",
+
+  "authDir": "./auth",
+
+  "admins": ["34600111222", "34600333444"],
+
+  "welcomeFile": "./welcome.txt",
+
+  "freeEntry": true,
+  "removeGeneral": true,
+  "promoteOnly": false
+}
