@@ -131,6 +131,83 @@ who belongs to that client's group only. One token per bot, never the admin's.
 
 ---
 
+## The client's own site reads the KB
+
+This is the shape most businesses actually want: **the knowledge lives in one place, and their
+public site is just a reader of it.** SOPs, process documentation and tutorials are written once
+in the KB by the people who own the process, and the help centre, the onboarding tutorials and
+the internal handbook all render from that same source. Same pattern as any product's docs site:
+the content is not in the website repo.
+
+What this buys you, and why it is worth the extra moving part:
+
+- Non-technical staff update a process without a deploy, a PR, or asking you.
+- One version of the truth. A tutorial cannot silently drift from the SOP it documents, because
+  they are the same document.
+- The AI gets clean markdown instead of scraped HTML — cheaper, and it stops quoting your cookie
+  banner back at people.
+
+### The proxy — the site's backend calls the KB, never the browser
+
+The API token must stay on the server. A token in client-side JavaScript is a token anyone can
+read, and it inherits its owner's permissions across every collection.
+
+```ts
+// app/api/kb/[slug]/route.ts — Next.js example
+export const revalidate = 300  // cache 5 min: the KB is not a database under load
+
+export async function GET(_req: Request, { params }: { params: { slug: string } }) {
+  const res = await fetch('https://kb.example.com/api/documents.info', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.OUTLINE_API_TOKEN}`,  // server-side only
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ id: params.slug }),
+    next: { revalidate },
+  })
+
+  if (!res.ok) return new Response('Not found', { status: 404 })
+
+  const { data } = await res.json()
+  // Ship markdown, not Outline's internal shape — so a KB change never breaks the site.
+  return Response.json({ title: data.title, markdown: data.text, updatedAt: data.updatedAt })
+}
+```
+
+Two decisions that keep this stable:
+
+- **Publish through a dedicated collection.** The site reads one collection (`Public Docs`),
+  never the whole workspace. Then "draft in the KB" and "live on the site" stay different things:
+  the internal collection is where work in progress lives, and moving a document into the public
+  collection is the act of publishing.
+- **Cache, and let it be stale for minutes.** A help centre that refetches per visitor turns your
+  wiki into a dependency of your uptime. Five minutes of staleness is invisible to readers.
+
+### Why this is the cheap way to feed the AI
+
+The KB already stores documents as markdown, which is the format an LLM handles best per token.
+Retrieval becomes: search → pull the two or three documents that matter → send those. No
+scraping, no HTML stripping, no vector database until you genuinely need one.
+
+```ts
+// answer from the KB, with a token budget instead of "send everything"
+const found = await kb('documents.search', { query: question, limit: 3 })
+const context = found.data
+  .map((r: any) => `# ${r.document.title}\n${r.document.text.slice(0, 4000)}`)
+  .join('\n\n---\n\n')
+// context -> the model prompt, with the source URLs kept for citations
+```
+
+Answer with the source link attached. "Here is the answer, and here is the SOP it came from" is
+what makes people trust it — and when the answer is wrong, they fix the document, which makes the
+next answer right. That feedback loop is the whole point of keeping the knowledge in one place.
+
+Start here. Add embeddings only when search stops finding the right document — for a few hundred
+SOPs, the built-in search plus a token budget is enough, and it is one less thing to keep in sync.
+
+---
+
 ## Backups
 
 Postgres holds everything (documents, permissions, history); the file storage volume holds
