@@ -1,8 +1,8 @@
 # Stratoma AI Stack
 
 **Run a small agency from a chat app, on one VPS.** This repo is the stack *and* the operating
-methodology: the Docker services, the client-bootstrap scripts, and — the part you only learn by
-running agents in production for months — how to keep a fleet of them alive.
+methodology: the Docker services, the playbooks, and — the part you only learn by running agents
+in production for months — how to keep a fleet of them alive.
 
 The agent lives in a `tmux` session on your server and you talk to it from Telegram. It deploys,
 scrapes, writes workflows, answers customers, and runs the box. Everything here is derived from
@@ -20,8 +20,9 @@ what actually runs the operation.
 | 🐣 **Never set up a server before?** | **[docs/SETUP-FROM-SCRATCH.md](docs/SETUP-FROM-SCRATCH.md)** — every command, copy-paste, from buying a server to texting an AI agent that runs it for you. |
 | 🐳 **You know Docker?** | **[Quick Start](#quick-start)** below. |
 
-Hosting is one small VPS (~€20/mo at the time of writing). The bigger line item is model spend —
-see [Cost & security](#cost--security).
+Hosting is one small VPS (~€20/mo at the time of writing), plus the Claude subscription the agent
+runs on. There is no `ANTHROPIC_API_KEY` anywhere in this repo — see
+[Cost & security](#cost--security).
 
 ---
 
@@ -110,43 +111,46 @@ and **[MULTI-CLAUDE-MOTHER-AND-CHILDREN](docs/MULTI-CLAUDE-MOTHER-AND-CHILDREN.m
 
 ## Quick Start
 
-**Prerequisites:** Docker + Docker Compose · a domain (or sslip.io for testing) · `yq`, `jq`,
-`curl` on the host · `python3` with `pip install google-api-python-client google-auth` (only for
-the tracking playbook) · API keys (see `.env.example`).
+**Prerequisites:** Docker + Docker Compose · a domain (or sslip.io for testing) · `curl` on the
+host · `python3` with `pip install google-api-python-client google-auth` (only for the tracking
+playbook) · Claude Code on the host, logged in with your Claude subscription (see
+[SETUP-FROM-SCRATCH](docs/SETUP-FROM-SCRATCH.md)) · service credentials (see `.env.example`).
 
 ```bash
 git clone https://github.com/DoubleN96/stratoma-ai-stack
 cd stratoma-ai-stack
 
 cp .env.example .env
-# Edit .env — setup.sh requires ANTHROPIC_API_KEY, N8N_ENCRYPTION_KEY, SUPABASE_JWT_SECRET,
-# and create-company.sh requires PAPERCLIP_ADMIN_API_KEY.
+# Edit .env — setup.sh requires N8N_ENCRYPTION_KEY and SUPABASE_JWT_SECRET. The stack itself
+# needs no model API key: the agent is Claude Code on the host, on your own subscription
+# (`claude /login`). The optional n8n workflow exports are a separate matter — see Cost.
 
-# One config file is not committed and must exist before the stack starts (see below)
-cp openclaw/openclaw.template.json openclaw/openclaw.json
+# Write supabase/kong.yml before the first `up` — it is bind-mounted and not committed.
+# setup.sh refuses to start until it exists, which is the honest failure (see below).
 
-./scripts/setup.sh             # runs docker-compose up -d --build, then waits for health
+./scripts/setup.sh             # runs docker-compose up -d --build, then waits for n8n
+./scripts/health-check.sh      # probes n8n AND Supabase
 
-./scripts/create-company.sh "My Client" "client-develop"
-./scripts/health-check.sh
+# Only if you plan to import the n8n exports — creates the four tables they need:
+docker compose exec -T supabase-db psql -U postgres -d postgres < n8n/workflows/schema.sql
 ```
 
-> **Known rough edge — read before your first `up`.** `docker-compose.yml` bind-mounts two
-> config files that are not committed: `./openclaw/openclaw.json` and `./supabase/kong.yml`.
-> Docker silently creates *directories* at those paths and the containers then crash-loop.
+> **Known rough edge — read before your first `up`.** `docker-compose.yml` bind-mounts one
+> config file that is not committed: `./supabase/kong.yml`. Docker silently creates a *directory*
+> at that path and Kong then crash-loops. `scripts/setup.sh` now checks for both cases and exits
+> with an explanation rather than reporting a successful setup over a broken gateway — but it
+> cannot write the file for you.
 >
-> For OpenClaw, copy the template as shown in the Quick Start above.
->
-> For Kong there is no template yet, and the reason matters: this compose file uses the stock
+> There is no template yet, and the reason matters: this compose file uses the stock
 > `kong:2.8.1` image, which does **not** substitute environment variables inside the declarative
 > config. Upstream Supabase ships a `supabase/kong` image whose entrypoint runs `envsubst`, which
 > is what makes the usual `$SUPABASE_ANON_KEY` placeholders work. So either switch the image, or
 > write `supabase/kong.yml` with your keys inlined. Contributions welcome — we would rather leave
 > this documented than ship a config we have not booted.
 >
-> Note both files are **untracked, not ignored** — `.gitignore` covers only `.env`, `*.env.local`,
-> `projects/*/secrets.env`, `node_modules/`, `*.log`, `.DS_Store`. Once you fill them with real
-> tokens they are one `git add .` from being committed, so add them to your `.gitignore` first.
+> Note the file is **untracked, not ignored** — `.gitignore` covers only `.env`, `*.env.local`,
+> `node_modules/`, `*.log`, `.DS_Store`, `__pycache__/`. Once you fill it with real keys it is one
+> `git add .` from being committed, so add it to your `.gitignore` first.
 
 **VPS:** the whole stack runs comfortably on a mid-range Hetzner cloud instance — 8 vCPU / 16 GB
 was our production choice, 4 vCPU / 8 GB is a workable floor. Prices and traffic allowances change;
@@ -157,106 +161,158 @@ check current rates rather than trusting a number in a README.
 
 ## What's in the box
 
-Self-hosted, deployed by `docker-compose`:
+**The agent** is **Claude Code**, installed on the host — not a container. It runs in `tmux`
+under your own Claude subscription and you reach it from Telegram through the official Telegram
+plugin. That is the part that deploys, scrapes, writes workflows and answers customers;
+everything below is what it operates. Install and login:
+[SETUP-FROM-SCRATCH](docs/SETUP-FROM-SCRATCH.md).
 
-- **Paperclip** — AI agent platform (agents work autonomously on tasks)
-- **n8n** — workflow automation (email, CRM, webhooks)
+Self-hosted, deployed by `docker-compose` — 6 containers, 2 published ports:
+
+- **n8n** — workflow automation (email, CRM, webhooks), with its own Postgres
 - **Supabase** — self-hosted Postgres + Auth + PostgREST, behind a Kong gateway
-- **OpenClaw** — WhatsApp & Telegram bot gateway
 
-**Coolify** (deployment UI) and **ruflo** (agent orchestration) are *not* deployed by this repo.
-Coolify is installed separately on the host; ruflo is consumed as an MCP server and is expected to
-be on `PATH` inside the Paperclip image.
+In the repo but not a service: **Baileys** (`whatsapp/`), the WhatsApp library, driven directly by
+one Node script. **Coolify** (deployment UI) is *not* deployed by this repo — install it on the
+host separately if you want it.
 
 ```mermaid
 graph TD
     subgraph host["Stratoma AI Stack — one VPS"]
-        P["Paperclip :3100<br/>agents · skills"]
+        CC["Claude Code — host process in tmux<br/>runs on your Claude subscription"]
         N["n8n :5678<br/>workflows · webhooks"]
         S["Supabase Kong :8000<br/>Postgres · Auth · REST"]
-        O["OpenClaw :18789<br/>Telegram / WhatsApp gateway"]
-        P --> O
-        N --> O
-        S --> O
+        CC --> N
+        CC --> S
     end
-    O -.-> EXT["External SaaS:<br/>CRM · Google Workspace · WhatsApp"]
+    U["You · Telegram"] <--> CC
+    N -.-> EXT["External SaaS:<br/>CRM · Google Workspace · WhatsApp"]
+    CC -.-> EXT
 ```
 
 | Service | Port | Exposure |
 |---------|------|----------|
-| Paperclip | 3100 | published on the host |
 | n8n | 5678 | published on the host |
 | Supabase Kong | 8000 | published on the host |
-| OpenClaw | 18789 | published on the host — bind it to `127.0.0.1` or put it behind a proxy |
-| Supabase Postgres / Auth / REST | — | internal network only |
+| Supabase Postgres / n8n Postgres / Auth / REST | — | internal network only |
 
-Put a reverse proxy with TLS in front of the first three. Everything the agents reach outside the
-box — CRM, Google Workspace, WhatsApp (both a conversational channel and a bulk-broadcast channel)
-— is external SaaS configured through `.env`, not self-hosted here.
+Put a reverse proxy with TLS in front of both published ports. The agent publishes nothing — you
+reach it through Telegram, not through a port. Everything the agents reach outside the box — CRM,
+Google Workspace, WhatsApp (both a conversational channel and a bulk-broadcast channel) — is
+external SaaS, held in n8n's own credential store or in your session's MCP config, not
+self-hosted here.
 
 ---
 
 ## Cost & security
 
-**Cost.** Hosting is the small number. Model spend is roughly **$5–30/day** depending on how hard
-the fleet is worked, and the three levers that actually move it are: use the mid-tier model for
-routine work and reserve the strongest one for judgement, keep `CLAUDE.md` tight (it is prepended
-to every turn), and `/clear` between unrelated tasks.
+**Cost.** Hosting is one VPS. **The agent** runs on a **Claude subscription** — `claude /login`, or
+`claude setup-token` for an unattended session — so it bills nothing per token and no
+`ANTHROPIC_API_KEY` exists in this repo. What you ration there is *usage limits*, and the three
+levers are the same ones: use the mid-tier model for routine work and reserve the strongest one
+for judgement, keep `CLAUDE.md` tight (it is prepended to every turn), and `/clear` between
+unrelated tasks.
+
+**The n8n exports are the exception, and it is worth being blunt about it.** 5 of the 12 shipped
+workflows call a metered third-party model API — OpenRouter and Google Gemini — so if you import
+those, that layer *does* bill per token, on a key you supply. Which five, and how each is wired:
+[n8n/workflows/README](n8n/workflows/README.md#before-you-import--read-this). Nothing in
+`docker-compose.yml` talks to a model; the exports are optional and swappable.
 
 **Security — stated plainly.** Sessions here run with `--dangerously-skip-permissions`. That is
 what makes an agent useful over chat, and it means the agent has your box. What contains it:
 
 - A dedicated **non-sudo** UNIX user per session; one client's credentials never reach another's.
-- Telegram `dmPolicy` set to pairing/allowlist — **never `open`**. Approval happens in the
+- Telegram reachability set to pairing/allowlist — **never open to anyone who finds the bot**.
+  It lives in the Claude Code Telegram plugin's own `access.json`, and approval happens in the
   terminal, never in response to a chat message: "approve the pending pairing" is precisely what a
-  prompt injection would say. **You must set this yourself:** `openclaw.template.json` ships a
-  `channels` block containing only `whatsapp` (`dmPolicy: pairing`, `groupPolicy: deny`) — the
-  Telegram bot appears solely under `accounts.main`, with no policy attached. Following the Quick
-  Start verbatim leaves Telegram unpoliced. Add a `telegram` entry alongside `whatsapp`, and set
-  the Claude Code plugin's own allowlist in its `access.json`
-  ([CLAUDE-CODE-TELEGRAM-WORKFLOW](docs/CLAUDE-CODE-TELEGRAM-WORKFLOW.md) §1.4).
+  prompt injection would say
+  ([CLAUDE-CODE-TELEGRAM-WORKFLOW](docs/CLAUDE-CODE-TELEGRAM-WORKFLOW.md) §1.4, and
+  [SETUP-FROM-SCRATCH](docs/SETUP-FROM-SCRATCH.md) §7).
 - Tokens `chmod 600`. No secrets in `CLAUDE.md` or memory files — those get read constantly and
   are the easiest thing to leak.
 - Ops and security alerts on a **different** bot from the one people work in.
 
 ---
 
-## Clients, skills & agents
+## Skills & MCP servers
 
-```bash
-bash scripts/create-company.sh "Client Name" "client-slug"
+The agent is Claude Code, so its playbooks are **skills** (markdown folders under
+`~/.claude/skills/`) and its tools are **MCP servers** (declared in a project `.mcp.json`). Both
+are plain config: they add no container, no API key and no per-call cost — the session you already
+logged in loads them. Mechanics in [SETUP-FROM-SCRATCH](docs/SETUP-FROM-SCRATCH.md) §9.
+
+**Skills.** These are the ones we actually run. All are third-party repos — none is authored here,
+none is vendored here, and there is no installer in this repo: clone them into `~/.claude/skills/`
+as §9 shows, or use the one-liner the source publishes. Read a skill before you install it, and
+check the repo's licence.
+
+Related to what this stack runs:
+
+| Skills | Source |
+|---|---|
+| `n8n-workflow-patterns`, `n8n-mcp-tools-expert`, `n8n-node-configuration`, `n8n-code-javascript`, `n8n-expression-syntax`, `n8n-validation-expert` | [czlonkowski/n8n-skills](https://github.com/czlonkowski/n8n-skills) — written against the `n8n-mcp` server below |
+| `supabase-postgres-best-practices` | [supabase/agent-skills](https://github.com/supabase/agent-skills) |
+
+General-purpose, unrelated to this stack — take them or leave them:
+
+| Skills | Source |
+|---|---|
+| `content-strategy`, `copywriting`, `launch-strategy`, `programmatic-seo`, `seo-audit`, `social-content` | [coreyhaines31/marketingskills](https://github.com/coreyhaines31/marketingskills) |
+| `seo-geo` | [resciencelab/opc-skills](https://github.com/resciencelab/opc-skills) |
+| `find-skills` | [vercel-labs/skills](https://github.com/vercel-labs/skills) |
+| `docx`, `pdf` | [anthropics/skills](https://github.com/anthropics/skills) |
+
+<details>
+<summary><strong>Optional add-on — Google Workspace (13 skills, not part of this stack)</strong></summary>
+
+If your operator account lives in Google Workspace anyway,
+[googleworkspace/cli](https://github.com/googleworkspace/cli) publishes `gws-calendar`,
+`gws-calendar-agenda`, `gws-calendar-insert`, `gws-docs`, `gws-drive`, `gws-drive-upload`,
+`gws-gmail`, `gws-gmail-send`, `gws-people`, `gws-shared`, `gws-sheets`, `gws-sheets-read` and
+`gws-workflow-meeting-prep` (also indexed on [skills.sh](https://skills.sh)). **Prerequisite:**
+the `gws` CLI plus a Google account you have OAuth'd — these skills are wrappers around that CLI,
+not standalone. Nothing in this repo depends on them.
+</details>
+
+**MCP servers.** A minimal `.mcp.json` for the session that operates this stack:
+
+```json
+{
+  "mcpServers": {
+    "n8n-mcp": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "n8n-mcp"],
+      "env": {
+        "MCP_MODE": "stdio",
+        "LOG_LEVEL": "error",
+        "DISABLE_CONSOLE_OUTPUT": "true",
+        "N8N_API_URL": "${N8N_URL}",
+        "N8N_API_KEY": "${N8N_API_KEY}",
+        "N8N_MCP_TELEMETRY_DISABLED": "true"
+      }
+    },
+    "github": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}" }
+    }
+  }
+}
 ```
-
-Which does, in order: creates the company in Paperclip → creates `projects/<slug>/` with the shared
-MCP config → installs skills from the catalog → seeds the agents from the roster.
-
-- **`paperclip/skills/catalog.yaml`** — the skill set, pulled from GitHub and
-  [skills.sh](https://skills.sh): Google Workspace, n8n, marketing/SEO, Next.js, Supabase, and
-  Anthropic's docx/pdf tooling. It also lists four Paperclip meta-skills as `local_path` entries —
-  Paperclip bundles those itself and `install-skills.sh` skips them.
-- **`paperclip/agents/roster.yaml`** — **9 agents**: CEO, Engineer, Marketing/SEO, Sales Manager,
-  Sales Rep, Lead Qualifier, Follow-up, CRM Updater, Admin. Each is pre-wired to a subset of skills
-  for its role.
-
-**MCP configuration.** Every Paperclip agent gets four servers by default, via
-`/paperclip/stratoma-default/.mcp.json`:
 
 | Server | Reach for it when… |
 |---|---|
-| `ruflo` | orchestrating sub-agents, swarms, shared memory |
-| `n8n-mcp` | creating or editing n8n workflows |
-| `github` | anything in a repo |
-| `coolify` | deploying, restarting, reading logs |
+| `n8n-mcp` | creating or editing n8n workflows — needs `N8N_URL` + `N8N_API_KEY` |
+| `github` | anything in a repo — needs `GITHUB_TOKEN` |
+| `coolify` (optional) | deploying, restarting, reading logs — only if you installed Coolify on the host; `npx -y @masonator/coolify-mcp@latest` with `COOLIFY_ACCESS_TOKEN` + `COOLIFY_BASE_URL` |
 
-Credentials are always `${ENV_VAR}` references, never literals. The operator's own session runs a
-wider kit (browser automation, workspace, wiki, database, document conversion) — see
+Credentials are always `${ENV_VAR}` references, never literals. The operator's own session usually
+runs a wider kit (browser automation, workspace, wiki, database, document conversion) — see
 [CLAUDE-CODE-TELEGRAM-WORKFLOW](docs/CLAUDE-CODE-TELEGRAM-WORKFLOW.md). Tenancy rule: a client's
 database MCP is wired into that client's session only.
-
-**Customising:** append to `catalog.yaml` and re-run `bash scripts/install-skills.sh <company_id>`;
-edit `roster.yaml` and re-run the agent section of `create-company.sh`. Per-company `AGENTS.md`
-instructions (credential blocks, runbooks, tone) upload separately via
-`PUT /api/agents/{id}/instructions-bundle/file`.
 
 ---
 
@@ -267,7 +323,7 @@ instructions (credential blocks, runbooks, tone) upload separately via
 | **Tracking & analytics** | `scripts/setup-tracking.sh`, `scripts/gtm_provision.py` | [TRACKING-AND-ANALYTICS](docs/TRACKING-AND-ANALYTICS.md) |
 | **WhatsApp communities** | `whatsapp/create-community.mjs` | [whatsapp/README](whatsapp/README.md) |
 | **Knowledge base** | self-hosted Outline recipe | [KNOWLEDGE-BASE](docs/KNOWLEDGE-BASE.md) |
-| **n8n workflows** | **13** importable JSON exports | [n8n/workflows/README](n8n/workflows/README.md) |
+| **n8n workflows** | **12** importable JSON exports + `n8n/workflows/schema.sql` | [n8n/workflows/README](n8n/workflows/README.md) |
 
 ```bash
 # Install one GTM container into a web repo.
@@ -292,14 +348,20 @@ node create-community.mjs community.json photo.jpg
 > sockets on one account (Evolution API *is* Baileys wrapped in HTTP — which is why communities
 > 404 there), and the ban risk is real.
 
-The 13 exports cover short-to-mid-term residential rentals: commercial email monitoring with
-AI categorisation and chat approval, a real-time CRM → agent bridge, AI replies on WhatsApp, a
-correction bot, inbound listing scraping, bookings and marketplace email, automatic check-in,
-weekly knowledge-gap self-improvement, plus a reusable error handler.
+The 12 exports cover short-to-mid-term residential rentals: commercial email monitoring with
+AI categorisation and chat approval, AI replies on WhatsApp, a correction bot, inbound listing
+scraping, bookings and marketplace email, automatic check-in, weekly knowledge-gap
+self-improvement, plus a reusable error handler.
 
-**Methodology only:** [n8n/workflows/README](n8n/workflows/README.md) also documents one pattern
-without shipping JSON for it — meeting-transcript webhook → CRM contact match → notes + follow-up
-tasks.
+Two things to know before importing them, both spelled out in
+[n8n/workflows/README](n8n/workflows/README.md#before-you-import--read-this): **5 of the 12 call a
+metered model API** (OpenRouter / Gemini) on a key you supply, and all of them expect four Supabase
+tables that this repo does not create for you — run
+[`n8n/workflows/schema.sql`](n8n/workflows/schema.sql) first or every approval flow 404s.
+
+**Methodology only:** [n8n/workflows/README](n8n/workflows/README.md) also documents two patterns
+without shipping JSON for them — meeting-transcript webhook → CRM contact match → notes +
+follow-up tasks, and the deduplicated error-ticket handler.
 
 ---
 
@@ -319,9 +381,9 @@ that only renders under JavaScript → browser automation; already Markdown → 
 
 ## Contributing
 
-Issues and PRs welcome — especially ARM64 support, a Helm chart, a one-click deploy button, more
-workflow templates, an OpenClaw config wizard, a monitoring stack, and backup automation. Open an
-issue to share your setup or report a bug.
+Issues and PRs welcome — especially ARM64 support, a Helm chart, a one-click deploy button, a
+committed `supabase/kong.yml` that actually boots, more workflow templates, a monitoring stack,
+and backup automation. Open an issue to share your setup or report a bug.
 
 ## License
 

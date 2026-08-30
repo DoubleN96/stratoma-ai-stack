@@ -431,10 +431,12 @@ ssh user@vps 'tmux capture-pane -t claude-session -p | tail -20'
 If the pane shows recent timestamps, you're good. If it shows a Node error
 or a shell prompt, the Claude process died — `tmux send-keys -t claude-session` your restart command, or systemctl restart it.
 
-### 7.4 Cost control
+### 7.4 Usage control
 
-Claude API charges per token. With heavy Telegram use, expect $5-30/day.
-Three savings:
+The session runs on **your Claude subscription** — `claude /login`, or
+`claude setup-token` for an unattended one. There is no `ANTHROPIC_API_KEY` and
+no per-token invoice; what you ration is the plan's **usage limits**. Three
+savings:
 
 - **Use Sonnet instead of Opus** for routine work — set
   `CLAUDE_MODEL=claude-sonnet-4-6` env var. Switch back to Opus for hard
@@ -484,8 +486,8 @@ in `allowFrom`. If you see it in `pending`, run `/telegram:access pair <code>`.
 
 ### Claude takes a long time to respond
 
-Either: hitting the Anthropic API rate limit, or working on a big task. Tail
-the pane to see what it's doing.
+Either: you have hit your plan's usage limit, or it is working on a big task.
+Tail the pane to see what it's doing.
 
 ### A message has files and you can't read them
 
@@ -509,8 +511,8 @@ is what 80% of operational asks require ("deploy this", "check the logs",
 
 Claude Code on a VPS, with `--dangerously-skip-permissions`, behind a
 Telegram chat, gives you the full power of "I have a sysadmin and a senior
-engineer on call from my phone" — for less than the cost of a cup of coffee
-per day in API charges.
+engineer on call from my phone" — on one Claude subscription and one small VPS,
+with no per-token API bill.
 
 The setup takes 30 minutes. After that, you operate at a different level.
 

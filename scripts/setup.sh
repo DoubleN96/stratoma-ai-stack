@@ -13,7 +13,7 @@ fi
 source .env
 
 # Check required vars
-required_vars=(ANTHROPIC_API_KEY N8N_ENCRYPTION_KEY SUPABASE_JWT_SECRET)
+required_vars=(N8N_ENCRYPTION_KEY SUPABASE_JWT_SECRET)
 for var in "${required_vars[@]}"; do
   if [ -z "${!var}" ]; then
     echo "ERROR: $var is not set in .env"
@@ -21,39 +21,58 @@ for var in "${required_vars[@]}"; do
   fi
 done
 
-# Generate JWT keys for Supabase if not set
-if [ -z "$SUPABASE_ANON_KEY" ]; then
-  echo "Generating Supabase JWT keys..."
-  JWT_SECRET="$SUPABASE_JWT_SECRET"
-  # These would be generated via jwt.io or a script
-  echo "WARN: Please generate SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY manually"
-  echo "      Use: https://supabase.com/docs/guides/self-hosting#api-keys"
+if [ -z "$SUPABASE_ANON_KEY" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+  echo "ERROR: SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY are not set in .env."
+  echo "       Generate them from SUPABASE_JWT_SECRET:"
+  echo "       https://supabase.com/docs/guides/self-hosting#api-keys"
+  exit 1
+fi
+
+# Kong is bind-mounted at ./supabase/kong.yml. If the file is missing, Docker
+# silently creates a DIRECTORY there and Kong crash-loops with no useful error —
+# so refuse to start rather than hand back a half-booted stack. There is no
+# committed template; see the "Known rough edge" section of the README.
+if [ -d supabase/kong.yml ]; then
+  echo "ERROR: supabase/kong.yml is a DIRECTORY. Docker created it on an earlier run."
+  echo "       Remove it (rmdir supabase/kong.yml) and write the file. See README."
+  exit 1
+fi
+if [ ! -f supabase/kong.yml ]; then
+  echo "ERROR: supabase/kong.yml is missing. Supabase's REST and Auth endpoints are"
+  echo "       reached through Kong, and Kong will not start without it."
+  echo "       This repo ships no template on purpose — see the README section"
+  echo "       'Known rough edge' for what to put in it and why."
+  echo ""
+  echo "       To bring up n8n only in the meantime:"
+  echo "         docker-compose up -d --build n8n"
+  exit 1
 fi
 
 echo "Starting services..."
 docker-compose up -d --build
 
-echo "Waiting for Paperclip to be healthy..."
-until curl -sf http://localhost:3100/health > /dev/null 2>&1; do
-  echo -n "."
-  sleep 3
-done
-echo " OK"
-
 echo "Waiting for n8n..."
-until curl -sf http://localhost:5678/healthz > /dev/null 2>&1; do
+for _ in $(seq 1 60); do
+  if curl -sf http://localhost:5678/healthz > /dev/null 2>&1; then
+    echo " OK"
+    break
+  fi
   echo -n "."
   sleep 3
 done
-echo " OK"
+if ! curl -sf http://localhost:5678/healthz > /dev/null 2>&1; then
+  echo ""
+  echo "ERROR: n8n did not become healthy in 3 minutes. Check: docker-compose logs n8n"
+  exit 1
+fi
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  Setup complete!"
+echo "  Containers started. n8n answered its health check."
 echo ""
-echo "  Paperclip: http://localhost:3100"
-echo "  n8n:       http://localhost:5678"
-echo "  Supabase:  http://localhost:8000"
+echo "  n8n:       http://localhost:5678   (verified above)"
+echo "  Supabase:  http://localhost:8000   (NOT verified by this script)"
 echo ""
-echo "  Next: ./scripts/create-company.sh \"Client Name\" \"client-slug\""
+echo "  Next: ./scripts/health-check.sh    <- this one probes Supabase too"
+echo "        then install Claude Code on the host — docs/SETUP-FROM-SCRATCH.md"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

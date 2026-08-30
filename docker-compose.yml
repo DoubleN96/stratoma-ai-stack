@@ -1,47 +1,6 @@
 version: "3.8"
 
 services:
-  # ─── Paperclip AI Agent Platform ───────────────────────────────────────────
-  paperclip-db:
-    image: postgres:16-alpine
-    container_name: paperclip-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: paperclip
-      POSTGRES_PASSWORD: ${PAPERCLIP_DB_PASSWORD:-paperclip}
-      POSTGRES_DB: paperclip
-    volumes:
-      - paperclip-db-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U paperclip"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  paperclip:
-    image: ghcr.io/paperclipai/paperclip:latest
-    container_name: paperclip
-    restart: unless-stopped
-    depends_on:
-      paperclip-db:
-        condition: service_healthy
-    ports:
-      - "3100:3100"
-    environment:
-      DATABASE_URL: postgres://paperclip:${PAPERCLIP_DB_PASSWORD:-paperclip}@paperclip-db:5432/paperclip
-      PAPERCLIP_LISTEN_PORT: "3100"
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
-      NODE_ENV: production
-    volumes:
-      - paperclip-data:/paperclip
-      - ./paperclip/stratoma-default:/paperclip/stratoma-default:ro
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3100/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   # ─── n8n Workflow Automation ────────────────────────────────────────────────
   n8n-db:
     image: postgres:16-alpine
@@ -160,29 +119,10 @@ services:
       PGRST_JWT_SECRET: ${SUPABASE_JWT_SECRET}
       PGRST_DB_USE_LEGACY_GUCS: "false"
 
-  # ─── OpenClaw Bot Gateway ───────────────────────────────────────────────────
-  openclaw:
-    image: node:22-alpine
-    container_name: openclaw
-    restart: unless-stopped
-    working_dir: /app
-    command: sh -c "npm install -g openclaw && openclaw gateway start --port 18789"
-    ports:
-      - "18789:18789"
-    environment:
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
-    volumes:
-      - openclaw-data:/root/.openclaw
-      - ./openclaw/openclaw.json:/root/.openclaw/openclaw.json:ro
-
 volumes:
-  paperclip-db-data:
-  paperclip-data:
   n8n-db-data:
   n8n-data:
   supabase-db-data:
-  openclaw-data:
 
 networks:
   default:
